@@ -29,6 +29,7 @@ import LabelDashboard from './screens/LabelDashboard';
 import ArtistManagement from './screens/ArtistManagement';
 import CreatorStore from './screens/CreatorStore';
 import AIAssistant from './screens/AIAssistant';
+import CompanyAI from './screens/CompanyAI';
 import Notifications from './screens/Notifications';
 import KYC from './screens/KYC';
 import Support from './screens/Support';
@@ -36,32 +37,14 @@ import AdminReports from './screens/AdminReports';
 import BookStudio from './screens/BookStudio';
 import ArtistCatalog from './screens/ArtistCatalog';
 import ArtistProfilePage from './screens/ArtistProfilePage';
-// Add page imports here
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
-
-  // Show loading spinner while checking app public settings or auth
-  if (isLoadingPublicSettings || isLoadingAuth) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
-  // Handle authentication errors
+  if (isLoadingPublicSettings || isLoadingAuth) return <div className="fixed inset-0 flex items-center justify-center"><div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div></div>;
   if (authError) {
-    if (authError.type === 'user_not_registered') {
-      return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required') {
-      // Redirect to login automatically
-      navigateToLogin();
-      return null;
-    }
+    if (authError.type === 'user_not_registered') return <UserNotRegisteredError />;
+    if (authError.type === 'auth_required') { navigateToLogin(); return null; }
   }
-
-  // Render the main app
   return (
     <Routes>
       <Route path="/" element={<Home />} />
@@ -74,6 +57,7 @@ const AuthenticatedApp = () => {
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         <Route element={<DashboardLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/company-ai" element={<CompanyAI />} />
           <Route path="/distribution" element={<Distribution />} />
           <Route path="/promotion" element={<Promotion />} />
           <Route path="/producer-suite" element={<ProducerSuite />} />
@@ -100,20 +84,8 @@ const AuthenticatedApp = () => {
   );
 };
 
-
 function App() {
-
-  return (
-    <AuthProvider>
-      <QueryClientProvider client={queryClientInstance}>
-        <Router>
-          <ScrollToTop />
-          <AuthenticatedApp />
-        </Router>
-        <Toaster />
-      </QueryClientProvider>
-    </AuthProvider>
-  )
+  return <AuthProvider><QueryClientProvider client={queryClientInstance}><Router><ScrollToTop /><AuthenticatedApp /></Router><Toaster /></QueryClientProvider></AuthProvider>
 }
 
 export default App
