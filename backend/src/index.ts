@@ -8,6 +8,7 @@ import morgan from "morgan";
 import entitiesRouter from "./routes/entities";
 import authRouter from "./routes/auth";
 import integrationsRouter from "./routes/integrations";
+import companyAIRouter from "./routes/company-ai";
 import { attachRealtime } from "./realtime";
 
 const app = express();
@@ -24,6 +25,7 @@ app.get("/health", (_req, res) => res.json({ status: "ok" }));
 app.use("/api/entities", entitiesRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/integrations", integrationsRouter);
+app.use("/api/company-ai", companyAIRouter);
 
 app.use((_req, res) => res.status(404).json({ error: "Not found" }));
 
