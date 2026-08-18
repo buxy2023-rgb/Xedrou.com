@@ -12,7 +12,6 @@ function extractToken(req: Request): string | null {
   return null;
 }
 
-/** Populates req.user if a valid token is present; never rejects the request. */
 export async function optionalAuth(req: AuthedRequest, _res: Response, next: NextFunction) {
   const token = extractToken(req);
   if (!token) return next();
@@ -20,17 +19,12 @@ export async function optionalAuth(req: AuthedRequest, _res: Response, next: Nex
   if (!error && data.user) {
     req.accessToken = token;
     req.user = { id: data.user.id, email: data.user.email ?? undefined };
-    const { data: profile } = await supabaseAdmin
-      .from("user_profiles")
-      .select("role")
-      .eq("id", data.user.id)
-      .maybeSingle();
+    const { data: profile } = await supabaseAdmin.from("profiles").select("role").eq("id", data.user.id).maybeSingle();
     if (profile?.role) req.user.role = profile.role;
   }
   next();
 }
 
-/** Rejects the request with 401 unless a valid Supabase access token is present. */
 export async function requireAuth(req: AuthedRequest, res: Response, next: NextFunction) {
   await optionalAuth(req, res, () => {
     if (!req.user) return res.status(401).json({ error: "Authentication required" });
