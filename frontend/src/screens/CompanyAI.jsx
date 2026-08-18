@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { base44 } from "@/api/base44Client";
 
 const companies = [
@@ -18,13 +18,23 @@ const companies = [
   { slug: "xedruo-ai", name: "Xedruo AI", type: "Artificial Intelligence", valuation: "$100B–$1T" },
 ];
 
-const baseSystem = `You are Xedruo Company AI, the private strategic AI for Xedruo Power Holdings and its 13 operating companies. You are not a generic chatbot. You act as a disciplined chief-of-staff, strategist, product architect, financial planning assistant, operations analyst and technical co-pilot. Keep company information private. When asked to create a plan, give concrete next actions, owners, dependencies, risks and measurable outcomes. Never invent financial facts; clearly label estimates and assumptions. The parent company is Xedruo Power Holdings.`;
-
 export default function CompanyAI() {
   const [selected, setSelected] = useState(companies[0]);
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState([{ role: "assistant", content: "Xedruo Company AI is online. Select a company and tell me what you want built, analyzed, planned or managed." }]);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    setMessages([{ role: "assistant", content: `Loading private memory for ${selected.name}…` }]);
+    base44.companyAI.memory(selected.slug).then(({ messages: saved = [] }) => {
+      if (!active) return;
+      setMessages(saved.length ? saved.map((m) => ({ role: m.role, content: m.content })) : [{ role: "assistant", content: `Xedruo Company AI is ready for ${selected.name}.` }]);
+    }).catch(() => {
+      if (active) setMessages([{ role: "assistant", content: `Xedruo Company AI is ready for ${selected.name}.` }]);
+    });
+    return () => { active = false; };
+  }, [selected]);
 
   const suggested = useMemo(() => selected.slug === "xedruo-power-holdings"
     ? ["Build the 14-company group strategy for the next 5 years.", "Design the operating model for the holding company.", "Create a capital allocation framework across all subsidiaries."]
@@ -33,15 +43,11 @@ export default function CompanyAI() {
   async function sendMessage(text = prompt) {
     const clean = text.trim();
     if (!clean || busy) return;
-    const next = [...messages, { role: "user", content: clean }];
-    setMessages(next); setPrompt(""); setBusy(true);
+    setMessages((current) => [...current, { role: "user", content: clean }]);
+    setPrompt(""); setBusy(true);
     try {
-      const context = next.slice(-12).map((m) => `${m.role.toUpperCase()}: ${m.content}`).join("\n\n");
-      const answer = await base44.integrations.Core.InvokeLLM({
-        system: `${baseSystem}\n\nCurrent company: ${selected.name}\nType: ${selected.type}\nTarget valuation range shown in the planning model: ${selected.valuation}`,
-        prompt: `Conversation:\n${context}\n\nUser's latest request:\n${clean}\n\nRespond with a practical executive answer. If the user asks to build something, provide a clear build specification and implementation sequence.`,
-      });
-      setMessages((current) => [...current, { role: "assistant", content: answer || "I could not produce an answer." }]);
+      const result = await base44.companyAI.chat({ company: selected.slug, companyType: selected.type, userMessage: clean });
+      setMessages((current) => [...current, { role: "assistant", content: result.answer || "I could not produce an answer." }]);
     } catch (error) {
       setMessages((current) => [...current, { role: "assistant", content: `AI request failed: ${error.message}` }]);
     } finally { setBusy(false); }
