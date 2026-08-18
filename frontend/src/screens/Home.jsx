@@ -19,7 +19,7 @@ const companies = [
   ["xedruo-properties","Xedruo Properties","Real Estate"],
   ["spacetruo","Spacetruo","Space & Aerospace"],
   ["xedruo-ai","Xedruo AI","Artificial Intelligence"],
-  ["xedruo-media","Xedruo Media","Media & Entertainment"]
+  ["xedruo","Xedruo","Core Xedruo Services"]
 ];
 const roles = [[Code2,"Developer","Build and edit your company's website and technology backend."],[Calculator,"Accountant","See financial records and income statements for your company."],[Headphones,"Customer Service","Manage customer questions, cases and service status."],[Users,"Staff","Access your company's internal operations workspace."]];
 
