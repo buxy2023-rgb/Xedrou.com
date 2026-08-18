@@ -1,116 +1,21 @@
 import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Building2, Users, Code2, Calculator, Headphones } from "lucide-react";
 import Logo from "@/components/marketing/Logo";
 import { Button } from "@/components/ui/button";
-import Footer from "@/components/marketing/Footer";
 
-const products = [
-  { icon: "🎵", title: "Distribution", desc: "Distribute your music to 150+ stores worldwide. Keep 100% of your royalties.", to: "/distribution" },
-  { icon: "📢", title: "Promotion", desc: "Expert campaigns across Spotify, TikTok, Apple Music, and more.", to: "/promotion" },
-  { icon: "🎹", title: "Producer Suite", desc: "Upload beats, set your price, and earn 80% on every sale.", to: "/producer-suite" },
-  { icon: "💳", title: "Creator Payments", desc: "Creator wallet, payment links, invoices and royalty management.", to: "/creator-payments" },
-  { icon: "🎟️", title: "Sell Tickets", desc: "Create events, sell tickets, and manage attendees with built-in revenue splits.", to: "/sell-tickets" },
-  { icon: "📈", title: "Invest", desc: "Buy equity in Xedruo and grow with the platform you use.", to: "/invest" },
+const companies = [
+  ["xedruo-power-holdings","Xedruo Power Holdings","Parent / Holding Company"],["xedruo","Xedruo","Pay & Play, AI, Distribution"],["sportruo","Sportruo","Sports"],["hireruo","Hireruo","Hiring & Workforce"],["adom","Adom","Consumer / Community"],["agruo","Agruo","Agriculture"],["heathrou","Heathrou","Health"],["xedruo-education","Xedruo Education","Education"],["xedruo-capital","Xedruo Capital","Finance & Investment"],["xedruo-energy","Xedruo Energy","Energy"],["xedruo-logistics","Xedruo Logistics","Logistics"],["xedruo-properties","Xedruo Properties","Real Estate"],["spacetruo","Spacetruo","Space & Aerospace"],["xedruo-ai","Xedruo AI","Artificial Intelligence"]
 ];
+const roles = [[Code2,"Developer","Build and edit your company's website and technology backend."],[Calculator,"Accountant","See financial records and income statements for your company."],[Headphones,"Customer Service","Manage customer questions, cases and service status."],[Users,"Staff","Access your company's internal operations workspace."]];
 
-const faqs = [
-  { q: "Do I keep 100% of my royalties?", a: "Yes. Xedruo charges a flat subscription fee only. All royalties from streaming and downloads go entirely to you." },
-  { q: "How fast does my music go live?", a: "Most releases are approved and distributed within 24–72 hours. Priority support plans get faster turnaround." },
-  { q: "Can I manage multiple artists or a label?", a: "Yes. The Label plan supports up to 5 artists with a shared dashboard, reporting, and team access." },
-  { q: "What currencies are supported?", a: "Xedruo supports NGN, USD, GBP, EUR, GHS, KES, and ZAR across payments, transfers and wallets." },
-  { q: "Is my music and payment data secure?", a: "All data is encrypted and protected. We support KYC verification and optional two-factor authentication." },
-];
-
-export default function Home() {
-  useEffect(() => {
-    base44.auth.isAuthenticated().then(authed => {
-      if (authed) window.location.href = "/dashboard";
-    });
-  }, []);
-
-  return (
-    <div className="min-h-screen" style={{ background: "#0a1628", color: "#fff" }}>
-      {/* Fixed Logo top-left */}
-      <div style={{ position: "fixed", top: 16, left: 16, zIndex: 50 }}>
-        <Logo />
-      </div>
-
-      {/* Hero — full screen image */}
-      <section className="relative overflow-hidden" style={{ height: "100vh" }}>
-        <img
-          src="https://media.base44.com/images/public/6a6e1673ce0eef4b702181b5/bd5806255_file_00000000ee8082438740926b743aac75.png"
-          alt="Xedruo Landing"
-          className="absolute inset-0 w-full h-full object-contain object-center"
-        />
-        {/* CTA buttons at bottom */}
-        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-wrap gap-4 justify-center z-10">
-          <Link to="/register">
-            <Button size="lg" className="h-12 px-10 text-base font-semibold" style={{ background: "#3b82f6", color: "#fff", border: "none" }}>
-              Get Started <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-          </Link>
-          <Link to="/pricing">
-            <Button size="lg" variant="outline" className="h-12 px-10 text-base font-semibold" style={{ borderColor: "rgba(255,255,255,0.6)", color: "#fff", background: "rgba(0,0,0,0.3)" }}>
-              View Plans
-            </Button>
-          </Link>
-        </div>
-      </section>
-
-      {/* Product Cards */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-20" style={{ background: "#0a1628" }}>
-        <div className="text-center mb-14">
-          <h2 className="text-3xl sm:text-4xl font-display font-bold tracking-tight text-white">Everything, in one ecosystem</h2>
-          <p className="text-gray-400 mt-3 max-w-xl mx-auto">Six powerful products built to take creators from upload to income.</p>
-        </div>
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {products.map((p) => (
-            <Link key={p.title} to={p.to}
-              className="group relative rounded-2xl p-7 hover:-translate-y-0.5 transition-all duration-200 overflow-hidden"
-              style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}>
-              <div className="text-3xl mb-4">{p.icon}</div>
-              <h3 className="text-lg font-semibold mb-2 text-white">{p.title}</h3>
-              <p className="text-sm text-gray-400 mb-4 leading-relaxed">{p.desc}</p>
-              <span className="inline-flex items-center gap-1 text-sm font-medium text-blue-400">
-                Open <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </span>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* FAQ */}
-      <section className="max-w-3xl mx-auto px-4 sm:px-6 py-20" style={{ background: "#0a1628" }}>
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-display font-bold text-white">Frequently asked questions</h2>
-        </div>
-        <div className="space-y-4">
-          {faqs.map((f) => (
-            <div key={f.q} className="rounded-2xl p-6" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}>
-              <div className="font-semibold mb-2 text-white">{f.q}</div>
-              <div className="text-sm text-gray-400 leading-relaxed">{f.a}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="max-w-5xl mx-auto px-4 sm:px-6 pb-24" style={{ background: "#0a1628" }}>
-        <div className="rounded-3xl p-10 sm:p-16 text-center relative overflow-hidden" style={{ background: "linear-gradient(135deg, #1e3a5f 0%, #1a4080 100%)", border: "1px solid rgba(59,130,246,0.3)" }}>
-          <div className="absolute -right-10 -bottom-10 w-52 h-52 rounded-full blur-2xl" style={{ background: "rgba(59,130,246,0.15)" }} />
-          <h2 className="text-3xl sm:text-4xl font-display font-bold mb-4 text-white">Ready to build your career?</h2>
-          <p className="text-gray-300 mb-8 max-w-lg mx-auto">Join Xedruo today and get everything you need in one place.</p>
-          <Link to="/register">
-            <Button size="lg" className="h-12 px-8 text-base font-semibold" style={{ background: "#3b82f6", color: "#fff", border: "none" }}>
-              Create your account
-            </Button>
-          </Link>
-        </div>
-      </section>
-
-      <Footer />
-    </div>
-  );
+export default function Home(){
+  useEffect(()=>{base44.auth.isAuthenticated().then(a=>{if(a) window.location.href="/dashboard"}).catch(()=>{});},[]);
+  return <div className="min-h-screen bg-slate-950 text-white"><header className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5"><Logo/><Link to="/login" className="text-sm text-slate-300 hover:text-white">Login</Link></header>
+    <section className="mx-auto max-w-7xl px-5 pb-20 pt-16 text-center"><div className="mx-auto max-w-4xl"><div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-cyan-300/10 text-cyan-300"><Building2/></div><div className="text-xs font-semibold uppercase tracking-[.35em] text-cyan-300">Xedruo Power Holdings</div><h1 className="mt-4 text-5xl font-black tracking-tight md:text-7xl">One AI. One ecosystem. <span className="text-cyan-300">14 companies.</span></h1><p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-slate-400">A company operating system for customers, developers, accountants, customer service teams and staff — with Xedruo Company AI at the center.</p><div className="mt-8 flex flex-wrap justify-center gap-3"><Link to="/worker-access"><Button size="lg" className="bg-cyan-300 text-slate-950 hover:bg-cyan-200">I work for Xedruo <ArrowRight className="ml-2" size={17}/></Button></Link><Link to="/register"><Button size="lg" variant="outline">Customer / Create account</Button></Link></div></div></section>
+    <section className="border-y border-white/10 bg-white/[.025] px-5 py-16"><div className="mx-auto max-w-7xl"><div className="mb-8 flex items-end justify-between"><div><div className="text-xs uppercase tracking-[.3em] text-slate-500">The group</div><h2 className="mt-2 text-3xl font-bold">Our companies</h2></div><span className="text-sm text-slate-500">14 total</span></div><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{companies.map(([slug,name,type],i)=><div key={slug} className="rounded-2xl border border-white/10 bg-white/5 p-5"><div className="text-xs text-cyan-300">{String(i+1).padStart(2,"0")}</div><h3 className="mt-2 font-semibold">{name}</h3><p className="mt-1 text-sm text-slate-500">{type}</p></div>)}</div></div></section>
+    <section className="mx-auto max-w-7xl px-5 py-20"><div className="text-center"><div className="text-xs uppercase tracking-[.3em] text-cyan-300">Workforce platform</div><h2 className="mt-3 text-3xl font-bold">Your job. Your company. Your workspace.</h2><p className="mx-auto mt-3 max-w-2xl text-slate-400">Every worker is directed to the tools they need after secure login.</p></div><div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-4">{roles.map(([Icon,title,desc])=><div key={title} className="rounded-3xl border border-white/10 bg-white/5 p-6"><Icon className="text-cyan-300"/><h3 className="mt-5 font-semibold">{title}</h3><p className="mt-2 text-sm leading-6 text-slate-400">{desc}</p></div>)}</div><div className="mt-10 text-center"><Link to="/worker-access" className="inline-flex items-center gap-2 text-cyan-300">Choose your company and role <ArrowRight size={16}/></Link></div></section>
+    <section className="mx-auto max-w-5xl px-5 pb-24"><div className="rounded-3xl border border-cyan-300/20 bg-cyan-300/5 p-10 text-center"><h2 className="text-3xl font-bold">Xedruo Company AI</h2><p className="mx-auto mt-3 max-w-2xl text-slate-400">The private strategic AI that helps the group plan, build, analyze, operate and coordinate every company.</p><Link to="/login" className="mt-7 inline-flex rounded-xl bg-cyan-300 px-5 py-3 font-semibold text-slate-950">Enter the platform</Link></div></section>
+  </div>;
 }
