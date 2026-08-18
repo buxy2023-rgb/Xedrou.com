@@ -1,8 +1,13 @@
 {
   "name": "xedruo-production",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "scripts": {
-    "build": "cd frontend && npm ci && npm run build"
+    "build": "cd frontend && npm install && npm run build"
+  },
+  "dependencies": {
+    "next": "^14.2.5",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   }
 }
