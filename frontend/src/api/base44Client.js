@@ -1,5 +1,5 @@
 import { io } from "socket.io-client";
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://xedruo-backend.onrender.com";
 const STORAGE_KEY = "xedruo_session";
 let session = null; let refreshing = null; const listeners = new Set();
 function loadSession() { if (session) return session; if (typeof window === "undefined") return null; try { const raw = window.localStorage.getItem(STORAGE_KEY); session = raw ? JSON.parse(raw) : null; } catch { session = null; } return session; }
@@ -30,5 +30,5 @@ const auth = {
   _saveSession: saveSession, _onAuthStateChanged: onAuthStateChanged,
 };
 const integrations = { Core: { UploadFile: async ({ file }) => { const form = new FormData(); form.append("file", file); return apiFetch("/api/integrations/upload-file", { method: "POST", body: form, isForm: true }); }, InvokeLLM: async ({ prompt, system, response_json_schema }) => { const data = await apiFetch("/api/integrations/invoke-llm", { method: "POST", body: { prompt, system, response_json_schema } }); return data.response; }, SendEmail: async ({ to, subject, body }) => apiFetch("/api/integrations/send-email", { method: "POST", body: { to, subject, body } }), TranscribeAudio: async ({ audio_url }) => { const data = await apiFetch("/api/integrations/transcribe-audio", { method: "POST", body: { audio_url } }); return data.text; } } };
-const companyAI = { memory: async (company) => apiFetch(`/api/company-ai/memory?company=${encodeURIComponent(company)}`), chat: async ({ company, companyType, userMessage }) => apiFetch("/api/company-ai/chat", { method: "POST", body: { company, companyType, userMessage } }), clearMemory: async (company) => apiFetch(`/api/company-ai/memory?company=${encodeURIComponent(company)}`, { method: "DELETE" }) };
+const companyAI = { memory: async (company) => apiFetch(`/api/company-ai/memory?company=${encodeURIComponent(company)}`), chat: async ({ company, companyType, userMessage }) => apiFetch("/api/company-ai/chat", { method: "POST", body: { company, companyType, userMessage }), clearMemory: async (company) => apiFetch(`/api/company-ai/memory?company=${encodeURIComponent(company)}`, { method: "DELETE" }) };
 export const base44 = { auth, entities, integrations, companyAI };
