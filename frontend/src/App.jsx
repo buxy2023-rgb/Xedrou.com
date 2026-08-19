@@ -6,6 +6,7 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider } from '@/lib/AuthContext';
 import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import WorkstationShell from './components/WorkstationShell';
 import ForgotPassword from './screens/ForgotPassword';
 import ResetPassword from './screens/ResetPassword';
 import AuthCallback from './screens/AuthCallback';
@@ -50,21 +51,23 @@ const AppRoutes = () => <Routes>
   <Route path="/pricing" element={<Pricing />} />
   <Route path="/worker-access" element={<WorkerAccess />} />
   <Route path="/developer-workstation" element={<DeveloperWorkstation />} />
-  <Route path="/power-holdings" element={<PowerHoldingsExecutive />} />
+  <Route element={<WorkstationShell />}>
+    <Route path="/power-holdings" element={<PowerHoldingsExecutive />} />
+    <Route path="/ceo/:id" element={<CEOExecutiveWorkspace />} />
+    <Route path="/ceo/:id/office" element={<CEOExecutiveWorkspace office />} />
+    <Route path="/accountant" element={<AccountantDashboard />} />
+    <Route path="/customer-service" element={<CustomerServiceWorkspace />} />
+    <Route path="/hr" element={<HRWorkspace />} />
+    <Route path="/governor" element={<GovernorDashboard mode="operations" />} />
+    <Route path="/governor-finance" element={<GovernorDashboard mode="finance" />} />
+  </Route>
   <Route path="/platform-usage" element={<PlatformUsageDashboard />} />
-  <Route path="/ceo/:id" element={<CEOExecutiveWorkspace />} />
-  <Route path="/ceo/:id/office" element={<CEOExecutiveWorkspace office />} />
   {/* Public-access mode: legacy login URLs no longer show a password form. */}
   <Route path="/login" element={<Navigate to="/worker-access" replace />} />
   <Route path="/developer-login" element={<Navigate to="/worker-access" replace />} />
   <Route path="/forgot-password" element={<Navigate to="/worker-access" replace />} />
   <Route path="/reset-password" element={<Navigate to="/worker-access" replace />} />
   <Route path="/auth/callback" element={<AuthCallback />} />
-  <Route path="/accountant" element={<AccountantDashboard />} />
-  <Route path="/customer-service" element={<CustomerServiceWorkspace />} />
-  <Route path="/hr" element={<HRWorkspace />} />
-  <Route path="/governor" element={<GovernorDashboard mode="operations" />} />
-  <Route path="/governor-finance" element={<GovernorDashboard mode="finance" />} />
   <Route element={<ProtectedRoute />}>
     <Route path="/worker-portal" element={<WorkerPortal />} />
     <Route element={<DashboardLayout />}>
