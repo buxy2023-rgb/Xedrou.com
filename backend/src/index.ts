@@ -10,6 +10,7 @@ import authRouter from "./routes/auth";
 import integrationsRouter from "./routes/integrations";
 import companyAIRouter from "./routes/company-ai";
 import companyPortalRouter from "./routes/company-portal";
+import developerRouter from "./routes/developer";
 import { attachRealtime } from "./realtime";
 
 const app = express();
@@ -28,6 +29,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/integrations", integrationsRouter);
 app.use("/api/company-ai", companyAIRouter);
 app.use("/api/company-portal", companyPortalRouter);
+app.use("/api/developer", developerRouter);
 
 app.use((_req, res) => res.status(404).json({ error: "Not found" }));
 
