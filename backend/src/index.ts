@@ -17,11 +17,27 @@ import { attachRealtime } from "./realtime";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 4000;
-const ORIGIN = process.env.FRONTEND_ORIGIN || "http://localhost:3000";
+const configuredOrigins = (process.env.FRONTEND_ORIGIN || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const allowedOrigins = new Set([
+  "https://xedrou-production-live.vercel.app",
+  "https://xedrou-production-live-xedruo-9003s-projects.vercel.app",
+  "https://xedrou-production-live-git-main-xedruo-9003s-projects.vercel.app",
+  ...configuredOrigins,
+  "http://localhost:3000",
+]);
 
 app.set("trust proxy", 1);
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.has(origin)) return callback(null, true);
+    return callback(new Error(`CORS origin not allowed: ${origin}`));
+  },
+  credentials: true,
+}));
 app.use(helmet());
-app.use(cors({ origin: ORIGIN, credentials: true }));
 app.use(express.json({ limit: "10mb" }));
 app.use(morgan("combined"));
 
