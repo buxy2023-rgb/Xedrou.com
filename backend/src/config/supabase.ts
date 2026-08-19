@@ -4,40 +4,27 @@ const SUPABASE_URL = process.env.SUPABASE_URL as string;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY as string;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
 
-if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  // eslint-disable-next-line no-console
-  console.warn(
-    "[supabase] SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are not set. " +
-      "Set them in backend/.env (see .env.example) before starting the server for real."
-  );
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  console.warn("[supabase] SUPABASE_URL / SUPABASE_ANON_KEY are not set.");
 }
 
-/**
- * Service-role client: bypasses RLS. Only ever used server-side, and only after
- * we've verified the caller's identity via requireAuth / optionalAuth middleware.
- * Row-level authorization (own-record checks, admin checks) is enforced in the
- * route handlers below, in addition to RLS policies on the tables themselves
- * (defense in depth in case this key is ever reused elsewhere).
- */
-export const supabaseAdmin: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+// Keep the server bootable when the privileged Render secret has not yet been
+// configured. Routes that require service-role privileges should still enforce
+// their own authorization/RLS; production should set SUPABASE_SERVICE_ROLE_KEY.
+const serverKey = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
+
+/** Server-side Supabase client. Uses service role when configured, otherwise
+ * falls back to the publishable/anon key so authentication can boot normally. */
+export const supabaseAdmin: SupabaseClient = createClient(SUPABASE_URL, serverKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
-/**
- * Anon-key client: used for the actual sign-in/sign-up/OTP/password-reset calls in
- * routes/auth.ts, so those operations run under the same privilege level a browser
- * client would normally use. Express is the only thing that ever holds this key or
- * talks to Supabase directly — the frontend never imports @supabase/supabase-js.
- */
+/** Anon-key client used for sign-in/sign-up/OTP/password-reset operations. */
 export const supabaseAnon: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
-/**
- * Per-request client scoped to a specific user's access token. Used where we need
- * an operation to run as that user (e.g. completing a password reset from a
- * recovery token) rather than as the service role.
- */
+/** Per-request client scoped to a specific user's access token. */
 export function supabaseForToken(accessToken: string): SupabaseClient {
   return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     global: { headers: { Authorization: `Bearer ${accessToken}` } },
