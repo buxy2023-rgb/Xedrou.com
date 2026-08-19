@@ -21,6 +21,12 @@ function verifyPassword(password: string, encoded: string) {
   } catch { return false; }
 }
 
+function hashPassword(password: string) {
+  const salt = randomBytes(16);
+  const hash = scryptSync(password, salt, 64);
+  return `${salt.toString("base64")}$${hash.toString("base64")}`;
+}
+
 function hashToken(token: string) { return createHash("sha256").update(token).digest("hex"); }
 
 router.post("/register", async (req, res) => {
@@ -38,6 +44,32 @@ router.post("/login", async (req, res) => {
   const { data, error } = await supabaseAnon.auth.signInWithPassword({ email, password });
   if (error) return res.status(401).json({ error: error.message });
   res.json({ session: sessionPayload(data.session) });
+});
+
+// One-time CEO credential setup/reset. The setup token is supplied only through Render's environment.
+// This changes the existing CEO developer account; it never creates a second CEO account.
+router.get("/ceo-setup", (req, res) => {
+  const token = String(req.query.token || "");
+  const configuredToken = String(process.env.CEO_SETUP_TOKEN || "");
+  if (!configuredToken || !token || token !== configuredToken) return res.status(404).send("Setup link is invalid or expired.");
+  res.type("html").send(`<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Xedruo CEO Setup</title><style>body{font-family:Arial,sans-serif;background:#0b1424;color:#fff;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0}.card{width:min(420px,90%);background:#142238;padding:28px;border-radius:16px}input,button{width:100%;box-sizing:border-box;padding:14px;margin-top:10px;border-radius:10px;border:1px solid #40506a;font-size:16px}button{background:#3b82f6;color:#fff;border:0;font-weight:700;cursor:pointer}small{color:#aab7c8}h1{margin-top:0}</style></head><body><div class="card"><h1>CEO Login Setup</h1><p>Set a new password for the existing <b>CEO</b> account.</p><form method="post" action="/api/auth/ceo-setup"><input type="hidden" name="setupToken" value="${token}"><input name="newPassword" type="password" minlength="10" placeholder="New password" required><input name="confirmPassword" type="password" minlength="10" placeholder="Confirm password" required><button type="submit">Set CEO Password</button></form><small>Use at least 10 characters. Do not share this setup link.</small></div></body></html>`);
+});
+
+router.post("/ceo-setup", async (req, res) => {
+  const setupToken = String(req.body?.setupToken || "");
+  const newPassword = String(req.body?.newPassword || "");
+  const confirmPassword = String(req.body?.confirmPassword || "");
+  const configuredToken = String(process.env.CEO_SETUP_TOKEN || "");
+  if (!configuredToken || !setupToken || setupToken !== configuredToken) return res.status(404).send("Setup link is invalid or expired.");
+  if (newPassword.length < 10) return res.status(400).send("Password must be at least 10 characters.");
+  if (newPassword !== confirmPassword) return res.status(400).send("Passwords do not match.");
+  const { data: account, error: lookupError } = await supabaseAdmin.from("developer_accounts").select("id,username,role,is_active").ilike("username", "CEO").maybeSingle();
+  if (lookupError || !account || account.role !== "admin" || !account.is_active) return res.status(404).send("Active CEO account was not found.");
+  const password_hash = hashPassword(newPassword);
+  const { error } = await supabaseAdmin.from("developer_accounts").update({ password_hash }).eq("id", account.id);
+  if (error) return res.status(500).send("Unable to update CEO password.");
+  await supabaseAdmin.from("developer_sessions").delete().eq("account_id", account.id);
+  res.type("html").send("<!doctype html><html><body style=\"font-family:Arial;background:#0b1424;color:white;text-align:center;padding:60px\"><h1>CEO password updated successfully.</h1><p>You can now return to Xedruo and sign in as CEO.</p></body></html>");
 });
 
 // Dedicated internal login for Power Holdings Developer Unit.
