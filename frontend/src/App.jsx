@@ -16,6 +16,7 @@ import WorkerPortal from './screens/WorkerPortal';
 import DashboardLayout from './components/app/DashboardLayout';
 import Dashboard from './screens/Dashboard';
 import DeveloperControlCenter from './screens/DeveloperControlCenter';
+import DeveloperWorkstation from './screens/DeveloperWorkstation';
 import Distribution from './screens/Distribution';
 import Promotion from './screens/Promotion';
 import ProducerSuite from './screens/ProducerSuite';
@@ -47,6 +48,7 @@ const AppRoutes = () => <Routes>
   <Route path="/" element={<Home />} />
   <Route path="/pricing" element={<Pricing />} />
   <Route path="/worker-access" element={<WorkerAccess />} />
+  <Route path="/developer-workstation" element={<DeveloperWorkstation />} />
   <Route path="/power-holdings" element={<PowerHoldingsExecutive />} />
   <Route path="/ceo/:id" element={<CEOExecutiveWorkspace />} />
   <Route path="/ceo/:id/office" element={<CEOExecutiveWorkspace office />} />
