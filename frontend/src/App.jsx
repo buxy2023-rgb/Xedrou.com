@@ -40,11 +40,16 @@ import AccountantDashboard from './screens/AccountantDashboard';
 import CustomerServiceWorkspace from './screens/CustomerServiceWorkspace';
 import HRWorkspace from './screens/HRWorkspace';
 import GovernorDashboard from './screens/GovernorDashboard';
+import PowerHoldingsExecutive from './screens/PowerHoldingsExecutive';
+import CEOExecutiveWorkspace from './screens/CEOExecutiveWorkspace';
 
 const AppRoutes = () => <Routes>
   <Route path="/" element={<Home />} />
   <Route path="/pricing" element={<Pricing />} />
   <Route path="/worker-access" element={<WorkerAccess />} />
+  <Route path="/power-holdings" element={<PowerHoldingsExecutive />} />
+  <Route path="/ceo/:id" element={<CEOExecutiveWorkspace />} />
+  <Route path="/ceo/:id/office" element={<CEOExecutiveWorkspace office />} />
   {/* Public-access mode: legacy login URLs no longer show a password form. */}
   <Route path="/login" element={<Navigate to="/worker-access" replace />} />
   <Route path="/developer-login" element={<Navigate to="/worker-access" replace />} />
