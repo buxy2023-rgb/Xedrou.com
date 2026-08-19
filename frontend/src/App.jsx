@@ -43,6 +43,7 @@ import HRWorkspace from './screens/HRWorkspace';
 import GovernorDashboard from './screens/GovernorDashboard';
 import PowerHoldingsExecutive from './screens/PowerHoldingsExecutive';
 import CEOExecutiveWorkspace from './screens/CEOExecutiveWorkspace';
+import PlatformUsageDashboard from './screens/PlatformUsageDashboard';
 
 const AppRoutes = () => <Routes>
   <Route path="/" element={<Home />} />
@@ -50,6 +51,7 @@ const AppRoutes = () => <Routes>
   <Route path="/worker-access" element={<WorkerAccess />} />
   <Route path="/developer-workstation" element={<DeveloperWorkstation />} />
   <Route path="/power-holdings" element={<PowerHoldingsExecutive />} />
+  <Route path="/platform-usage" element={<PlatformUsageDashboard />} />
   <Route path="/ceo/:id" element={<CEOExecutiveWorkspace />} />
   <Route path="/ceo/:id/office" element={<CEOExecutiveWorkspace office />} />
   {/* Public-access mode: legacy login URLs no longer show a password form. */}
