@@ -43,6 +43,7 @@ import GovernorDashboard from './screens/GovernorDashboard';
 import PowerHoldingsExecutive from './screens/PowerHoldingsExecutive';
 import CEOExecutiveWorkspace from './screens/CEOExecutiveWorkspace';
 import PlatformUsageDashboard from './screens/PlatformUsageDashboard';
+import PayAndPlay from './screens/PayAndPlay';
 
 const AppRoutes = () => <Routes>
   <Route path="/" element={<Home />} />
@@ -70,6 +71,7 @@ const AppRoutes = () => <Routes>
     <Route path="/worker-portal" element={<WorkerPortal />} />
     <Route element={<DashboardLayout />}>
       <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/pay-and-play" element={<PayAndPlay />} />
       <Route path="/developer" element={<DeveloperControlCenter />} />
       <Route path="/company-ai" element={<CompanyAI />} />
       <Route path="/ai-assistant" element={<AIAssistant />} />
