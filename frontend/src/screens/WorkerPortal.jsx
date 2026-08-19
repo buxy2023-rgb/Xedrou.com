@@ -2,39 +2,44 @@ import React, { useEffect, useMemo, useState } from "react";
 import { companyPortal } from "@/lib/companyPortal";
 import { useAuth } from "@/lib/AuthContext";
 import { Link } from "react-router-dom";
-import { Code2, Calculator, Headphones, BriefcaseBusiness, Save, CheckCircle2 } from "lucide-react";
+import { Code2, Calculator, Headphones, BriefcaseBusiness, Save, CheckCircle2, ShieldCheck } from "lucide-react";
 
-const names = {
-  "xedruo-power-holdings": "Xedruo Power Holdings", xedruo: "Xedruo", sportruo: "Sportruo", hireruo: "Hireruo", adom: "Adom", agruo: "Agruo", heathrou: "Heathrou", "xedruo-education": "Xedruo Education", "xedruo-capital": "Xedruo Capital", "xedruo-energy": "Xedruo Energy", "xedruo-logistics": "Xedruo Logistics", "xedruo-properties": "Xedruo Properties", spacetruo: "Spacetruo", "xedruo-ai": "Xedruo AI"
-};
-
+const companies = [
+  ["xedruo-power-holdings", "Xedruo Power Holdings"], ["xedruo", "Xedruo"], ["sportruo", "Sportruo"], ["hireruo", "Hireruo"], ["adom", "Adom"], ["agruo", "Agruo"], ["heathrou", "Heathrou"], ["xedruo-education", "Xedruo Education"], ["xedruo-capital", "Xedruo Capital"], ["xedruo-energy", "Xedruo Energy"], ["xedruo-logistics", "Xedruo Logistics"], ["xedruo-properties", "Xedruo Properties"], ["spacetruo", "Spacetruo"], ["xedruo-ai", "Xedruo AI"]
+];
+const names = Object.fromEntries(companies);
 function Card({ children }) { return <div className="rounded-3xl border border-white/10 bg-white/5 p-5">{children}</div>; }
 
 export default function WorkerPortal() {
   const { user } = useAuth();
   const [data, setData] = useState(null); const [pages, setPages] = useState([]); const [queries, setQueries] = useState([]); const [finance, setFinance] = useState(null); const [busy, setBusy] = useState(false); const [message, setMessage] = useState("");
-  const company = user?.company_slug; const role = user?.role;
+  const isCEO = user?.role === "admin";
+  const [selectedCompany, setSelectedCompany] = useState(user?.company_slug || "xedruo-power-holdings");
+  const company = isCEO ? selectedCompany : user?.company_slug; const role = user?.role;
   const canDev = role === "developer" || role === "admin"; const canAccount = role === "accountant" || role === "admin"; const canSupport = role === "customer_service" || role === "admin";
 
   useEffect(() => { companyPortal.context().then(setData).catch(e => setMessage(e.message)); }, []);
-  useEffect(() => { if (!company) return; setBusy(true); Promise.all([canDev ? companyPortal.pages(company) : Promise.resolve({pages:[]}), canSupport ? companyPortal.queries(company) : Promise.resolve({queries:[]}), canAccount ? companyPortal.financials(company) : Promise.resolve(null)]).then(([p,q,f]) => { setPages(p.pages || []); setQueries(q.queries || []); setFinance(f); }).catch(e => setMessage(e.message)).finally(() => setBusy(false)); }, [company, canDev, canSupport, canAccount]);
+  useEffect(() => {
+    if (!company) return;
+    setBusy(true); setMessage("");
+    Promise.all([
+      canDev ? companyPortal.pages(company) : Promise.resolve({ pages: [] }),
+      canSupport ? companyPortal.queries(company) : Promise.resolve({ queries: [] }),
+      canAccount ? companyPortal.financials(company) : Promise.resolve(null)
+    ]).then(([p, q, f]) => { setPages(p.pages || []); setQueries(q.queries || []); setFinance(f); }).catch(e => setMessage(e.message)).finally(() => setBusy(false));
+  }, [company, canDev, canSupport, canAccount]);
 
   const [draft, setDraft] = useState({ slug: "home", title: "Home", content: { headline: "Welcome to Xedruo", body: "" }, published: false });
-  const roleLabel = useMemo(() => ({developer:"Developer",accountant:"Accountant",customer_service:"Customer Service",staff:"Staff",admin:"Administrator"}[role] || "Staff"), [role]);
-
-  async function savePage() { setBusy(true); try { const saved = await companyPortal.savePage({ ...draft, company }); setPages((p) => [saved, ...p.filter(x => x.slug !== saved.slug)]); setMessage("Site page saved."); } catch(e) { setMessage(e.message); } finally { setBusy(false); } }
-  async function updateQuery(id,status) { try { const saved = await companyPortal.updateQuery(id,status); setQueries(q => q.map(x => x.id === id ? saved : x)); } catch(e) { setMessage(e.message); } }
-
+  const roleLabel = useMemo(() => ({ developer: "Developer", accountant: "Accountant", customer_service: "Customer Service", staff: "Staff", admin: "CEO / Administrator" }[role] || "Staff"), [role]);
+  async function savePage() { setBusy(true); try { const saved = await companyPortal.savePage({ ...draft, company }); setPages(p => [saved, ...p.filter(x => x.slug !== saved.slug)]); setMessage("Site page saved."); } catch(e) { setMessage(e.message); } finally { setBusy(false); } }
+  async function updateQuery(id, status) { try { const saved = await companyPortal.updateQuery(id, status); setQueries(q => q.map(x => x.id === id ? saved : x)); } catch(e) { setMessage(e.message); } }
   if (!user) return null;
+
   return <div className="min-h-screen bg-slate-950 text-white p-5 md:p-8"><div className="mx-auto max-w-7xl">
-    <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between"><div><div className="text-xs uppercase tracking-[.3em] text-cyan-300">Workforce command center</div><h1 className="mt-2 text-3xl font-bold">{names[company] || company || "Company"}</h1><p className="text-slate-400 mt-2">{roleLabel} portal • {user.email}</p></div><Link to="/company-ai" className="rounded-2xl bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950">Open Company AI</Link></div>
-    {message && <div className="mb-5 rounded-xl border border-cyan-300/20 bg-cyan-300/10 p-3 text-sm text-cyan-100">{message}</div>}
-    {!company && <Card><h2 className="text-xl font-semibold">Your workforce profile is not assigned to a company yet.</h2><p className="mt-2 text-slate-400">Ask an administrator to assign your company and role before accessing internal systems.</p></Card>}
-    {company && <div className="grid gap-5 md:grid-cols-3">
-      <Card><div className="flex items-center gap-3"><BriefcaseBusiness/><div><div className="text-slate-400 text-sm">Company</div><div className="font-semibold">{names[company]}</div></div></div></Card>
-      <Card><div className="flex items-center gap-3"><Code2/><div><div className="text-slate-400 text-sm">Role</div><div className="font-semibold">{roleLabel}</div></div></div></Card>
-      <Card><div className="flex items-center gap-3"><CheckCircle2/><div><div className="text-slate-400 text-sm">Access</div><div className="font-semibold">{busy ? "Loading…" : "Active"}</div></div></div></Card>
-    </div>}
+    <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between"><div><div className="text-xs uppercase tracking-[.3em] text-cyan-300">Staff Board • CEO Full Access</div><h1 className="mt-2 text-3xl font-bold">{names[company] || company || "Company"}</h1><p className="text-slate-400 mt-2">{roleLabel} portal • {user.email}</p></div><div className="flex flex-wrap gap-2"><Link to="/developer" className="rounded-2xl bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950">Developer Control Center</Link><Link to="/company-ai" className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm">Company AI</Link></div></div>
+    {isCEO && <Card><div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div><div className="flex items-center gap-2 font-semibold"><ShieldCheck size={18}/> CEO unrestricted workspace access</div><p className="text-sm text-slate-400 mt-1">Select any company to view its staff work, website pages, customer queries and financial workspace using this same CEO login.</p></div><select value={selectedCompany} onChange={e => setSelectedCompany(e.target.value)} className="rounded-xl bg-black/40 p-3 min-w-64">{companies.map(([v,n]) => <option key={v} value={v}>{n}</option>)}</select></div></Card>}
+    {message && <div className="my-5 rounded-xl border border-cyan-300/20 bg-cyan-300/10 p-3 text-sm text-cyan-100">{message}</div>}
+    <div className="mt-5 grid gap-5 md:grid-cols-3"><Card><div className="flex items-center gap-3"><BriefcaseBusiness/><div><div className="text-slate-400 text-sm">Company</div><div className="font-semibold">{names[company]}</div></div></div></Card><Card><div className="flex items-center gap-3"><Code2/><div><div className="text-slate-400 text-sm">Role</div><div className="font-semibold">{roleLabel}</div></div></div></Card><Card><div className="flex items-center gap-3"><CheckCircle2/><div><div className="text-slate-400 text-sm">Access</div><div className="font-semibold">{busy ? "Loading…" : "Unlimited for CEO"}</div></div></div></Card></div>
 
     {canDev && <section className="mt-6"><h2 className="mb-3 text-xl font-semibold">Developer — Website backend</h2><div className="grid gap-5 lg:grid-cols-2"><Card><label className="text-sm text-slate-400">Page slug</label><input value={draft.slug} onChange={e=>setDraft({...draft,slug:e.target.value})} className="mt-1 w-full rounded-xl bg-black/30 p-3"/><label className="mt-3 block text-sm text-slate-400">Title</label><input value={draft.title} onChange={e=>setDraft({...draft,title:e.target.value})} className="mt-1 w-full rounded-xl bg-black/30 p-3"/><label className="mt-3 block text-sm text-slate-400">Headline</label><input value={draft.content.headline} onChange={e=>setDraft({...draft,content:{...draft.content,headline:e.target.value}})} className="mt-1 w-full rounded-xl bg-black/30 p-3"/><label className="mt-3 block text-sm text-slate-400">Page content</label><textarea value={draft.content.body} onChange={e=>setDraft({...draft,content:{...draft.content,body:e.target.value}})} className="mt-1 min-h-32 w-full rounded-xl bg-black/30 p-3"/><label className="mt-3 flex items-center gap-2 text-sm"><input type="checkbox" checked={draft.published} onChange={e=>setDraft({...draft,published:e.target.checked})}/> Published</label><button onClick={savePage} className="mt-4 flex items-center gap-2 rounded-xl bg-cyan-300 px-4 py-3 font-semibold text-slate-950"><Save size={16}/> Save website</button></Card><Card><h3 className="font-semibold">Existing pages</h3><div className="mt-3 space-y-2">{pages.map(p=><div key={p.id} className="rounded-xl bg-black/20 p-3"><div className="font-medium">{p.title}</div><div className="text-xs text-slate-500">/{p.slug} • {p.published ? "Published" : "Draft"}</div></div>)}{!pages.length && <div className="text-sm text-slate-500">No pages created yet.</div>}</div></Card></div></section>}
 
