@@ -29,9 +29,13 @@ function ToolPanel({ tool, onConsume }) {
 
   const run = async () => {
     setLoading(true); setResult("");
-    const res = await base44.integrations.Core.InvokeLLM({ prompt: tool.prompt(form) });
-    setResult(res); setLoading(false);
-    onConsume?.();
+    try {
+      const response = await base44.ai.orchestrate({ role: "creative", company: "xedruo-ai", task: tool.prompt(form), outputFormat: "text" });
+      setResult(response.text || "No AI output was returned.");
+      onConsume?.();
+    } catch (error) {
+      setResult(`AI request failed: ${error.message}`);
+    } finally { setLoading(false); }
   };
 
   const copy = () => { navigator.clipboard.writeText(result); setCopied(true); setTimeout(() => setCopied(false), 2000); };
@@ -70,7 +74,7 @@ function ToolPanel({ tool, onConsume }) {
 export default function AIAssistant() {
   return (
     <div>
-      <PageHeader title="Xedruo AI" subtitle="AI-powered tools built for creators. Free · Pro $30/mo · Unlimited $100/yr" />
+      <PageHeader title="Xedruo AI" subtitle="AI-powered tools for creators, powered by the Xedruo AI routing layer." />
       <AIPlanGate>
         <GatedContent />
       </AIPlanGate>
