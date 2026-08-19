@@ -7,8 +7,6 @@ import { AuthProvider } from '@/lib/AuthContext';
 import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import WorkstationShell from './components/WorkstationShell';
-import ForgotPassword from './screens/ForgotPassword';
-import ResetPassword from './screens/ResetPassword';
 import AuthCallback from './screens/AuthCallback';
 import Home from './screens/Home';
 import Pricing from './screens/Pricing';
@@ -50,6 +48,7 @@ const AppRoutes = () => <Routes>
   <Route path="/" element={<Home />} />
   <Route path="/pricing" element={<Pricing />} />
   <Route path="/worker-access" element={<WorkerAccess />} />
+  <Route path="/enit-ai" element={<AIAssistant />} />
   <Route path="/developer-workstation" element={<DeveloperWorkstation />} />
   <Route element={<WorkstationShell />}>
     <Route path="/power-holdings" element={<PowerHoldingsExecutive />} />
@@ -62,7 +61,6 @@ const AppRoutes = () => <Routes>
     <Route path="/governor-finance" element={<GovernorDashboard mode="finance" />} />
   </Route>
   <Route path="/platform-usage" element={<PlatformUsageDashboard />} />
-  {/* Public-access mode: legacy login URLs no longer show a password form. */}
   <Route path="/login" element={<Navigate to="/worker-access" replace />} />
   <Route path="/developer-login" element={<Navigate to="/worker-access" replace />} />
   <Route path="/forgot-password" element={<Navigate to="/worker-access" replace />} />
@@ -74,6 +72,7 @@ const AppRoutes = () => <Routes>
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/developer" element={<DeveloperControlCenter />} />
       <Route path="/company-ai" element={<CompanyAI />} />
+      <Route path="/ai-assistant" element={<AIAssistant />} />
       <Route path="/distribution" element={<Distribution />} />
       <Route path="/promotion" element={<Promotion />} />
       <Route path="/producer-suite" element={<ProducerSuite />} />
@@ -85,7 +84,6 @@ const AppRoutes = () => <Routes>
       <Route path="/label-dashboard" element={<LabelDashboard />} />
       <Route path="/artist-management" element={<ArtistManagement />} />
       <Route path="/creator-store" element={<CreatorStore />} />
-      <Route path="/ai-assistant" element={<AIAssistant />} />
       <Route path="/notifications" element={<Notifications />} />
       <Route path="/kyc" element={<KYC />} />
       <Route path="/support" element={<Support />} />
