@@ -11,29 +11,29 @@ import integrationsRouter from "./routes/integrations";
 import companyAIRouter from "./routes/company-ai";
 import companyPortalRouter from "./routes/company-portal";
 import developerRouter from "./routes/developer";
+import companyApiRouter from "./routes/company-api";
 import { attachRealtime } from "./realtime";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 4000;
 const ORIGIN = process.env.FRONTEND_ORIGIN || "http://localhost:3000";
 
+app.set("trust proxy", 1);
 app.use(helmet());
 app.use(cors({ origin: ORIGIN, credentials: true }));
 app.use(express.json({ limit: "10mb" }));
-app.use(morgan("dev"));
+app.use(morgan("combined"));
 
 app.get("/health", (_req, res) => res.json({ status: "ok" }));
-
 app.use("/api/entities", entitiesRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/integrations", integrationsRouter);
 app.use("/api/company-ai", companyAIRouter);
 app.use("/api/company-portal", companyPortalRouter);
 app.use("/api/developer", developerRouter);
+app.use("/api/company", companyApiRouter);
 
 app.use((_req, res) => res.status(404).json({ error: "Not found" }));
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);
   res.status(err.status || 500).json({ error: err.message || "Internal server error" });
@@ -41,7 +41,4 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 
 const httpServer = http.createServer(app);
 attachRealtime(httpServer);
-
-httpServer.listen(PORT, () => {
-  console.log(`Xedruo API (+ realtime) listening on :${PORT}`);
-});
+httpServer.listen(PORT, () => console.log(`Xedruo API (+ realtime) listening on :${PORT}`));
