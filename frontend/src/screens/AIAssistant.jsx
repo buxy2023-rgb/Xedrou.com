@@ -1,102 +1,24 @@
 import React, { useState } from "react";
-import { Sparkles, Loader2, Copy, CheckCheck } from "lucide-react";
-import { base44 } from "@/api/base44Client";
-import PageHeader from "@/components/app/PageHeader";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Bot, Code2, Database, FileText, Image, Mic2, Presentation, Send, Sparkles, Video } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import AIPlanGate from "@/components/ai/AIPlanGate";
-import VoiceSampleTool from "@/components/ai/VoiceSampleTool";
+import { Button } from "@/components/ui/button";
 
-const TOOLS = [
-  { id: "lyrics", label: "Lyrics Generator", icon: "🎵", fields: [["Song Theme / Title", "theme"], ["Genre", "genre"], ["Mood", "mood"], ["Language", "language"]], prompt: (f) => `Write original song lyrics for a song called "${f.theme}" in the ${f.genre || "Afrobeats"} genre with a ${f.mood || "uplifting"} mood in ${f.language || "English"}. Include verse 1, pre-chorus, chorus, verse 2, bridge.` },
-  { id: "metadata", label: "Metadata Generator", icon: "🏷️", fields: [["Song Title", "title"], ["Artist Name", "artist"], ["Genre", "genre"]], prompt: (f) => `Generate optimized music metadata for a song titled "${f.title}" by ${f.artist} in the ${f.genre} genre. Include: genre tags, mood tags, sub-genre, tempo (BPM), key, language, description, keywords.` },
-  { id: "description", label: "Song Description", icon: "📝", fields: [["Song Title", "title"], ["Artist", "artist"], ["Genre", "genre"], ["Vibe", "vibe"]], prompt: (f) => `Write a compelling, SEO-optimized song description for "${f.title}" by ${f.artist}. Genre: ${f.genre}. Vibe: ${f.vibe}. Include a YouTube description, Spotify bio section, and press release blurb.` },
-  { id: "marketing", label: "Marketing Plan", icon: "📣", fields: [["Song/Project Title", "title"], ["Target Audience", "audience"], ["Budget (₦)", "budget"]], prompt: (f) => `Create a detailed music marketing plan for "${f.title}" targeting ${f.audience}. Budget: ₦${f.budget}. Include social media strategy, DSP pitching, playlist strategy, press outreach, influencer strategy, and a week-by-week content calendar.` },
-  { id: "caption", label: "Social Captions", icon: "📲", fields: [["Song/Project", "title"], ["Platform", "platform"], ["Vibe", "vibe"]], prompt: (f) => `Write 5 engaging ${f.platform || "Instagram"} captions to promote "${f.title}". Vibe: ${f.vibe || "uplifting"}. Include hashtags, emojis, call-to-action.` },
-  { id: "release_plan", label: "Release Planner", icon: "📅", fields: [["Artist", "artist"], ["Release Title", "title"], ["Release Date", "date"], ["Genre", "genre"]], prompt: (f) => `Create a 4-week music release plan for "${f.title}" by ${f.artist} releasing on ${f.date}. Genre: ${f.genre}. Include: pre-release tasks, release-day strategy, post-release follow-up, playlist pitching, social content schedule.` },
-  { id: "seo", label: "SEO Optimizer", icon: "🔍", fields: [["Artist/Brand Name", "name"], ["Genre", "genre"], ["Main Markets", "markets"]], prompt: (f) => `Generate an SEO optimization strategy for ${f.name}, a ${f.genre} artist/brand targeting ${f.markets}. Include: artist bio SEO, YouTube SEO, DSP profile optimization, website meta tags, keywords, Google presence tips.` },
-  { id: "insights", label: "Analytics Insights", icon: "📊", fields: [["Streams (monthly)", "streams"], ["Top Country", "country"], ["Top Platform", "platform"], ["Genre", "genre"]], prompt: (f) => `Analyze these music analytics and give detailed insights: ${f.streams} monthly streams, top country: ${f.country}, top platform: ${f.platform}, genre: ${f.genre}. Provide: audience breakdown, growth recommendations, content strategy, DSP focus areas.` },
+const MODES = [
+  ["chat", "Chat", Bot, "Ask Enit anything."], ["build", "Build App", Code2, "Describe a real application to build."], ["analyze", "Data Analysis", Database, "Analyze data, trends and useful metrics."], ["presentation", "Presentation", Presentation, "Turn an idea or source into slides."], ["prompt", "Prompt Lab", Sparkles, "Turn natural language into an executable AI workflow."], ["document", "Documents", FileText, "Create or transform professional documents."], ["image", "Artwork", Image, "Create image and artwork generation briefs."], ["audio", "Audio", Mic2, "Create narration and audio workflows."], ["video", "Video", Video, "Create scripts, scenes and production workflows."]
 ];
-
-function ToolPanel({ tool, onConsume }) {
-  const [form, setForm] = useState({});
-  const [result, setResult] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
-
-  const run = async () => {
-    setLoading(true); setResult("");
-    try {
-      const response = await base44.ai.orchestrate({ role: "creative", company: "xedruo-ai", task: tool.prompt(form), outputFormat: "text" });
-      setResult(response.text || "No AI output was returned.");
-      onConsume?.();
-    } catch (error) {
-      setResult(`AI request failed: ${error.message}`);
-    } finally { setLoading(false); }
-  };
-
-  const copy = () => { navigator.clipboard.writeText(result); setCopied(true); setTimeout(() => setCopied(false), 2000); };
-
-  return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-2xl">{tool.icon}</span>
-          <h3 className="font-semibold">{tool.label}</h3>
-        </div>
-        {tool.fields.map(([label, key]) => (
-          <div key={key} className="space-y-1.5">
-            <Label>{label}</Label>
-            <Input value={form[key] || ""} onChange={(e) => setForm({ ...form, [key]: e.target.value })} />
-          </div>
-        ))}
-        <Button className="w-full" onClick={run} disabled={loading}>
-          {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generating…</> : <><Sparkles className="w-4 h-4 mr-2" />Generate</>}
-        </Button>
-      </div>
-
-      <div className="rounded-2xl border border-border bg-card p-6 flex flex-col">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-sm text-muted-foreground">Output</h3>
-          {result && <Button variant="ghost" size="sm" onClick={copy}>{copied ? <><CheckCheck className="w-4 h-4 mr-1" />Copied</> : <><Copy className="w-4 h-4 mr-1" />Copy</>}</Button>}
-        </div>
-        {loading && <div className="flex-1 flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>}
-        {!loading && !result && <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">Fill in the form and click Generate to see results here.</div>}
-        {!loading && result && <Textarea value={result} readOnly className="flex-1 min-h-64 resize-none text-sm bg-muted/50" />}
-      </div>
-    </div>
-  );
-}
+const examples = {
+  chat: "Explain how I can grow a new business in Nigeria.", build: "Build a real school management app with students, fees, attendance, results and a parent portal.", analyze: "Analyze this sales data and identify the biggest revenue opportunities.", presentation: "Create a 10-slide investor presentation for my company.", prompt: "Create a complete prompt for an AI to build a logistics management platform.", document: "Create a professional business proposal for a new energy company.", image: "Create a premium brand artwork concept for an African technology company.", audio: "Create a 60-second professional company introduction narration.", video: "Create a 90-second launch video for a new technology product."
+};
 
 export default function AIAssistant() {
-  return (
-    <div>
-      <PageHeader title="Xedruo AI" subtitle="AI-powered tools for creators, powered by the Xedruo AI routing layer." />
-      <AIPlanGate>
-        <GatedContent />
-      </AIPlanGate>
-    </div>
-  );
-}
-
-function GatedContent({ onConsume }) {
-  return (
-    <Tabs defaultValue="lyrics">
-      <TabsList className="mb-6 flex-wrap h-auto gap-1">
-        {TOOLS.map(t => <TabsTrigger key={t.id} value={t.id}>{t.icon} {t.label}</TabsTrigger>)}
-        <TabsTrigger value="voice">🎙️ Voice Sample</TabsTrigger>
-      </TabsList>
-      {TOOLS.map(t => (
-        <TabsContent key={t.id} value={t.id}>
-          <ToolPanel tool={t} onConsume={onConsume} />
-        </TabsContent>
-      ))}
-      <TabsContent value="voice">
-        <VoiceSampleTool onConsume={onConsume} />
-      </TabsContent>
-    </Tabs>
-  );
+  const [mode, setMode] = useState("chat"); const [prompt, setPrompt] = useState(""); const [context, setContext] = useState(""); const [output, setOutput] = useState(""); const [loading, setLoading] = useState(false); const [provider, setProvider] = useState("");
+  async function run() {
+    if (!prompt.trim() || loading) return; setLoading(true); setOutput("");
+    try { const api = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || "https://xedruo-backend.onrender.com"; const response = await fetch(`${api}/api/ai/enit`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode, prompt, context }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error || "Enit AI request failed"); setOutput(data.text || "No output returned."); setProvider(`${data.provider || "AI"} · ${data.model || "routed"}`); } catch (error) { setOutput(`Enit AI error: ${error.message}`); setProvider(""); } finally { setLoading(false); }
+  }
+  return <div className="min-h-screen bg-slate-950 text-white"><header className="border-b border-white/10 sticky top-0 z-20 bg-slate-950/95"><div className="max-w-7xl mx-auto px-4 md:px-6 py-4 flex items-center justify-between"><div><div className="flex items-center gap-2"><Sparkles className="text-cyan-300"/><span className="text-xl font-bold">Enit AI</span></div><p className="text-xs text-slate-500 mt-1">Public AI workspace · chat · app building · data · presentations · media</p></div><span className="rounded-full border border-cyan-300/20 bg-cyan-300/5 px-3 py-1 text-xs text-cyan-200">PUBLIC AI</span></div></header>
+    <main className="max-w-7xl mx-auto px-4 md:px-6 py-6"><div className="grid lg:grid-cols-[250px_1fr] gap-5"><aside className="rounded-2xl border border-white/10 bg-white/5 p-3 h-fit"><div className="text-xs uppercase tracking-widest text-slate-500 px-2 pb-2">Workspace</div>{MODES.map(([id,label,Icon,desc]) => <button key={id} onClick={() => setMode(id)} className={`w-full rounded-xl p-3 text-left flex items-start gap-3 ${mode === id ? "bg-cyan-300/10 ring-1 ring-cyan-300/30" : "hover:bg-white/5"}`}><Icon size={18} className="mt-0.5 text-cyan-300"/><span><span className="block text-sm font-medium">{label}</span><span className="block text-[11px] text-slate-500 mt-0.5">{desc}</span></span></button>)}</aside>
+      <section className="min-w-0"><div className="rounded-2xl border border-white/10 bg-white/5 p-5 md:p-6"><div className="flex flex-wrap items-center justify-between gap-3"><div><div className="text-xs uppercase tracking-widest text-cyan-300">{MODES.find(m => m[0] === mode)?.[1]}</div><h1 className="text-2xl md:text-3xl font-bold mt-1">What do you want Enit to create?</h1></div><button onClick={() => setPrompt(examples[mode])} className="text-xs text-cyan-300 hover:text-cyan-200">Use example</button></div><div className="mt-5"><Textarea value={prompt} onChange={e => setPrompt(e.target.value)} placeholder={examples[mode]} className="min-h-36 bg-black/20 border-white/10 text-white placeholder:text-slate-600" /></div><div className="mt-3"><Textarea value={context} onChange={e => setContext(e.target.value)} placeholder="Optional context: paste data, requirements, notes or source material..." className="min-h-24 bg-black/20 border-white/10 text-white placeholder:text-slate-600" /></div><div className="mt-4 flex justify-end"><Button onClick={run} disabled={loading || !prompt.trim()} size="lg" className="bg-cyan-300 text-slate-950 hover:bg-cyan-200"><Send size={17}/>{loading ? "Working..." : "Run Enit"}</Button></div></div>
+        <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 overflow-hidden"><div className="px-5 py-4 border-b border-white/10 flex items-center justify-between"><span className="font-semibold">Output</span>{provider && <span className="text-xs text-slate-500">{provider}</span>}</div><div className="p-5 min-h-[420px] whitespace-pre-wrap text-sm leading-7 text-slate-300">{loading ? "Enit AI is working..." : output || "Your result will appear here."}</div></div>
+        <div className="mt-5 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">{[[Code2,"Real apps","Plan working applications, architecture, pages, data models and implementation."],[Database,"Data intelligence","Analyze datasets and produce metrics, trends, decisions and chart recommendations."],[Presentation,"Presentations","Create slide narratives, speaker notes and visual directions."],[Bot,"Chat & prompts","Reason, write, plan and turn natural language into structured AI workflows."],[Image,"Visual creation","Create detailed briefs for artwork, branding and image generation."],[Mic2,"Audio & video","Create narration, scripts, scenes, captions and production workflows."]].map(([Icon,title,desc]) => <div key={title} className="rounded-xl border border-white/10 bg-white/[.03] p-4"><Icon size={19} className="text-cyan-300"/><div className="font-medium mt-3">{title}</div><div className="text-xs text-slate-500 mt-1 leading-5">{desc}</div></div>)}</div></section></div></main></div>;
 }
