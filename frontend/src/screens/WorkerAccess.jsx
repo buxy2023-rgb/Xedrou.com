@@ -1,26 +1,45 @@
-import React, { useMemo, useState } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, BarChart3, BriefcaseBusiness, Calculator, Code2, Headphones, Users, Crown, DollarSign, HardDrive } from "lucide-react";
+import { BarChart3, Calculator, Code2, Headphones, Users, DollarSign, BriefcaseBusiness } from "lucide-react";
 
-const companies = [["xedruo-power-holdings","01 — Xedruo Power Holdings"],["xedruo","02 — Xedruo"],["sportruo","03 — Sportruo"],["hireruo","04 — Hireruo"],["adom","05 — Adom"],["agruo","06 — Agruo"],["heathrou","07 — Heathrou"],["xedruo-education","08 — Xedruo Education"],["xedruo-capital","09 — Xedruo Capital"],["xedruo-energy","10 — Xedruo Energy"],["xedruo-logistics","11 — Xedruo Logistics"],["xedruo-properties","12 — Xedruo Properties"],["spacetruo","13 — Spacetruo"],["xedruo-ai","14 — Xedruo AI"]];
 const roles = [
- {id:"developer",name:"Developer",desc:"Build, edit, integrate and deploy apps",Icon:Code2,dashboard:"Developer Dashboard",tasks:["Edit app","Integrate app","Connect domain","Connect 3rd-party API","Import external source","Add plugins","Project files & media"]},
- {id:"accountant",name:"Accountant",desc:"Sales, income, expenses and transactions",Icon:Calculator,dashboard:"Finance & Sales Dashboard",tasks:["Sales","Income","Expenses","Successful transactions","Failed transactions","Financial reports"]},
- {id:"customer_service",name:"Customer Service",desc:"Customer queries and replies",Icon:Headphones,dashboard:"Customer Service Dashboard",tasks:["Open queries","Reply to customers","Escalations","Resolved cases","Customer history"]},
- {id:"hr",name:"HR",desc:"Staff registration and workforce",Icon:Users,dashboard:"HR Workforce Dashboard",tasks:["Register staff","Assign roles","View staff","Remove staff","Workforce reports"]},
- {id:"governor_operations",name:"Governor",desc:"Company-wide operations and performance",Icon:BarChart3,dashboard:"Governor Performance Dashboard",tasks:["Weekly performance","Monthly performance","Yearly aggregate","Operations","Sales","Expenses","AI business analysis"]},
- {id:"governor_finance",name:"CFO",desc:"Executive finance and growth",Icon:DollarSign,dashboard:"CFO Dashboard",tasks:["Income","Sales","Expenses","Failed transactions","Cash performance","Growth analysis"]}
+  {id:"developer",name:"Developer",desc:"Build, edit, integrate and deploy apps",Icon:Code2,dashboard:"Developer Dashboard",route:"/developer-workstation"},
+  {id:"accountant",name:"Accountant",desc:"Sales, income, expenses and transactions",Icon:Calculator,dashboard:"Finance & Sales Dashboard",route:"/accountant"},
+  {id:"customer_service",name:"Customer Service",desc:"Customer queries and replies",Icon:Headphones,dashboard:"Customer Service Dashboard",route:"/customer-service"},
+  {id:"hr",name:"HR",desc:"Staff registration and workforce",Icon:Users,dashboard:"HR Workforce Dashboard",route:"/hr"},
+  {id:"governor_operations",name:"Governor",desc:"Company-wide operations and performance",Icon:BarChart3,dashboard:"Governor Performance Dashboard",route:"/governor"},
+  {id:"governor_finance",name:"CFO",desc:"Executive finance and growth",Icon:DollarSign,dashboard:"CFO Dashboard",route:"/governor-finance"}
 ];
-const routes={developer:"/developer-workstation",accountant:"/accountant",customer_service:"/customer-service",hr:"/hr",governor_operations:"/governor",governor_finance:"/governor-finance"};
+
+const DEFAULT_COMPANY = "xedruo-power-holdings";
+
 export default function WorkerAccess(){
- const [role,setRole]=useState(""); const [task,setTask]=useState(""); const [company,setCompany]=useState(""); const navigate=useNavigate();
- const selectedRole=useMemo(()=>roles.find(r=>r.id===role),[role]); const isPowerHoldings=company==="xedruo-power-holdings"; const canContinue=!!role&&!!task&&!!company;
- function continueToWorkstation(){if(!canContinue)return; const context={company_slug:company,role,task,selected_at:new Date().toISOString()}; localStorage.setItem("xedruo_workforce_context",JSON.stringify(context)); if(isPowerHoldings&&(role==="governor_operations"||role==="governor_finance")) navigate("/power-holdings"); else navigate(`${routes[role]}?company=${encodeURIComponent(company)}&task=${encodeURIComponent(task)}`);}
- return <div className="min-h-screen bg-slate-950 text-white p-5 md:p-10"><div className="mx-auto max-w-5xl"><div className="mb-8"><div className="text-xs uppercase tracking-[.3em] text-cyan-300">Xedruo workforce access</div><h1 className="mt-2 text-4xl font-bold">Choose your function, task and company</h1><p className="mt-3 text-slate-400">Function → Dashboard → Task / Operation → Company → Workstation.</p></div><div className="space-y-6 rounded-3xl border border-white/10 bg-white/5 p-6">
- <section><div className="mb-3 text-sm font-semibold text-slate-300">1. Select function</div><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{roles.map(({id,name,desc,Icon,dashboard})=><button key={id} onClick={()=>{setRole(id);setTask("")}} className={`rounded-2xl border p-4 text-left transition ${role===id?"border-cyan-300 bg-cyan-300/10":"border-white/10 bg-black/20 hover:bg-white/5"}`}><Icon className="mb-3 text-cyan-300" size={21}/><div className="font-semibold">{name}</div><div className="mt-1 text-xs text-slate-500">{desc}</div><div className="mt-3 text-xs text-cyan-300">Dashboard: {dashboard}</div></button>)}</div></section>
- {selectedRole&&<section><div className="mb-3 text-sm font-semibold text-slate-300">2. Function dashboard</div><div className="rounded-2xl border border-cyan-300/20 bg-cyan-300/5 p-5"><div className="flex items-center gap-3"><selectedRole.Icon className="text-cyan-300"/><div><div className="font-bold text-lg">{selectedRole.dashboard}</div><div className="text-sm text-slate-400">Your selected function dashboard will open with company-specific data.</div></div></div></div></section>}
- {selectedRole&&<section><div className="mb-3 text-sm font-semibold text-slate-300">3. Select task / operation</div><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{selectedRole.tasks.map(t=><button key={t} onClick={()=>setTask(t)} className={`rounded-xl border p-3 text-left text-sm ${task===t?"border-cyan-300 bg-cyan-300/10":"border-white/10 bg-black/20"}`}>{t}</button>)}</div></section>}
- {selectedRole&&task&&<section><div className="mb-3 text-sm font-semibold text-slate-300">4. Select company</div><select value={company} onChange={e=>setCompany(e.target.value)} className="w-full rounded-2xl bg-black/30 p-4 border border-white/10"><option value="">Select company…</option>{companies.map(([v,n])=><option key={v} value={v}>{n}</option>)}</select>{isPowerHoldings&&<div className="mt-3 rounded-xl border border-cyan-300/20 bg-cyan-300/5 p-4 text-sm text-slate-300"><Crown className="mb-2 text-cyan-300" size={20}/>Power Holdings Company 01 includes Governor, CFO, 13 CEO dashboards and an Office of the Executive under each CEO.</div>}</section>}
- {selectedRole&&task&&company&&<section><div className="mb-3 text-sm font-semibold text-slate-300">5. Workstation</div><div className="grid gap-3 sm:grid-cols-3"><div className="rounded-xl border border-white/10 bg-black/20 p-4"><BriefcaseBusiness className="text-cyan-300" size={20}/><div className="mt-2 font-semibold">{selectedRole.name} workstation</div><div className="text-xs text-slate-500">{task}</div></div>{(role==="developer"||role.startsWith("governor"))&&<><div className="rounded-xl border border-white/10 bg-black/20 p-4"><Users className="text-violet-300" size={20}/><div className="mt-2 font-semibold">User count & usage</div><div className="text-xs text-slate-500">Company users and activity metrics</div></div><div className="rounded-xl border border-white/10 bg-black/20 p-4"><HardDrive className="text-emerald-300" size={20}/><div className="mt-2 font-semibold">File storage</div><div className="text-xs text-slate-500">Files, storage usage and capacity</div></div></>}</div></section>}
- <button disabled={!canContinue} onClick={continueToWorkstation} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-300 p-4 font-semibold text-slate-950 disabled:opacity-40">Open my dashboard & workstation <ArrowRight size={18}/></button></div><p className="mt-4 text-center text-xs text-slate-600">Company-sensitive data remains subject to server-side authorization.</p></div></div>;
+  const navigate = useNavigate();
+
+  function openFunction(role){
+    const company = localStorage.getItem("xedruo_selected_company") || DEFAULT_COMPANY;
+    localStorage.setItem("xedruo_workforce_context", JSON.stringify({company_slug:company, role, selected_at:new Date().toISOString()}));
+    navigate(`${role.route}?company=${encodeURIComponent(company)}`);
+  }
+
+  return <div className="min-h-screen bg-slate-950 text-white p-5 md:p-10">
+    <div className="mx-auto max-w-5xl">
+      <div className="mb-8">
+        <div className="text-xs uppercase tracking-[.3em] text-cyan-300">Xedruo workforce access</div>
+        <h1 className="mt-2 text-4xl font-bold">Select your function</h1>
+        <p className="mt-3 text-slate-400">Choose a function and its workstation dashboard opens immediately. You can change the company from the top-right of the workstation.</p>
+      </div>
+      <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {roles.map(({id,name,desc,Icon,dashboard,route})=><button key={id} onClick={()=>openFunction({id,name,route})} className="rounded-2xl border border-white/10 bg-black/20 p-5 text-left transition hover:border-cyan-300/40 hover:bg-cyan-300/10">
+            <Icon className="mb-3 text-cyan-300" size={22}/>
+            <div className="font-semibold text-lg">{name}</div>
+            <div className="mt-1 text-xs text-slate-500">{desc}</div>
+            <div className="mt-4 flex items-center gap-2 text-xs text-cyan-300"><BriefcaseBusiness size={14}/> {dashboard}</div>
+          </button>)}
+        </div>
+      </div>
+      <p className="mt-4 text-center text-xs text-slate-600">Company-sensitive data remains subject to server-side authorization.</p>
+    </div>
+  </div>;
 }
