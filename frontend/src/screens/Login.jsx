@@ -8,6 +8,8 @@ import { LogIn, UserRound, Lock, Loader2, ShieldCheck, Eye, EyeOff } from "lucid
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 
+// Power Holdings uses a dedicated developer-only authentication flow.
+
 async function finishWorkforceSetup() {
   const raw = localStorage.getItem("xedruo_pending_workforce");
   if (!raw) return false;
