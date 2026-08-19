@@ -12,6 +12,7 @@ import companyAIRouter from "./routes/company-ai";
 import companyPortalRouter from "./routes/company-portal";
 import developerRouter from "./routes/developer";
 import companyApiRouter from "./routes/company-api";
+import companyDomainsRouter from "./routes/company-domains";
 import { attachRealtime } from "./realtime";
 
 const app = express();
@@ -32,6 +33,7 @@ app.use("/api/company-ai", companyAIRouter);
 app.use("/api/company-portal", companyPortalRouter);
 app.use("/api/developer", developerRouter);
 app.use("/api/company", companyApiRouter);
+app.use("/api/company-domains", companyDomainsRouter);
 
 app.use((_req, res) => res.status(404).json({ error: "Not found" }));
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
