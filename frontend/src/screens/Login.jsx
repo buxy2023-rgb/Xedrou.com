@@ -41,7 +41,11 @@ export default function Login() {
         if (workerLogin && pending && pending.company_slug !== "xedruo-power-holdings") throw new Error("This secure staff login is for Power Holdings employees.");
         const developer = await base44.auth.loginDeveloper(value, password);
         if (pending) await finishWorkforceSetup();
-        window.location.href = developer?.role === "admin" ? "/developer" : "/worker-portal";
+        // CEO is the Power Holdings admin account. Route by the authenticated
+        // account identity as well as role so the CEO cannot be sent to staff.
+        const isCEO = String(developer?.username || value).trim().toUpperCase() === "CEO";
+        const isAdmin = developer?.role === "admin" || developer?.role === "ceo" || isCEO;
+        window.location.href = isAdmin ? "/developer" : "/worker-portal";
       } else {
         await base44.auth.loginViaEmailPassword(value, password);
         const worker = await finishWorkforceSetup();
