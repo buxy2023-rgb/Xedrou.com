@@ -1,8 +1,9 @@
 import { NextFunction, Request, Response } from "express";
+import { createHash } from "crypto";
 import { supabaseAdmin } from "../config/supabase";
 
 export interface AuthedRequest extends Request {
-  user?: { id: string; email?: string; role?: string };
+  user?: { id: string; email?: string; role?: string; username?: string; company_slug?: string };
   accessToken?: string;
 }
 
@@ -12,15 +13,32 @@ function extractToken(req: Request): string | null {
   return null;
 }
 
+function tokenHash(token: string) { return createHash("sha256").update(token).digest("hex"); }
+
 export async function optionalAuth(req: AuthedRequest, _res: Response, next: NextFunction) {
   const token = extractToken(req);
   if (!token) return next();
+
   const { data, error } = await supabaseAdmin.auth.getUser(token);
   if (!error && data.user) {
     req.accessToken = token;
     req.user = { id: data.user.id, email: data.user.email ?? undefined };
-    const { data: profile } = await supabaseAdmin.from("profiles").select("role").eq("id", data.user.id).maybeSingle();
+    const { data: profile } = await supabaseAdmin.from("profiles").select("role,company_slug").eq("id", data.user.id).maybeSingle();
     if (profile?.role) req.user.role = profile.role;
+    if (profile?.company_slug) req.user.company_slug = profile.company_slug;
+    return next();
+  }
+
+  const { data: devSession } = await supabaseAdmin
+    .from("developer_sessions")
+    .select("account_id,expires_at,developer_accounts(id,username,display_name,role,company_slug,is_active)")
+    .eq("token_hash", tokenHash(token))
+    .gt("expires_at", new Date().toISOString())
+    .maybeSingle();
+  const account: any = devSession?.developer_accounts;
+  if (devSession && account?.is_active) {
+    req.accessToken = token;
+    req.user = { id: account.id, email: `${account.username.toLowerCase()}@xedruo.local`, role: account.role, username: account.username, company_slug: account.company_slug };
   }
   next();
 }
