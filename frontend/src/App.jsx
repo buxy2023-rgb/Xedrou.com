@@ -1,10 +1,9 @@
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
-import { AuthProvider, useAuth } from '@/lib/AuthContext';
-import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import { AuthProvider } from '@/lib/AuthContext';
 import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Login from './screens/Login';
@@ -40,15 +39,11 @@ import ArtistCatalog from './screens/ArtistCatalog';
 import ArtistProfilePage from './screens/ArtistProfilePage';
 
 const DeveloperLogin = () => <Login />;
-const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
-  if (isLoadingPublicSettings || isLoadingAuth) return <div className="fixed inset-0 flex items-center justify-center"><div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div></div>;
-  if (authError) { if (authError.type === 'user_not_registered') return <UserNotRegisteredError />; if (authError.type === 'auth_required') { navigateToLogin(); return null; } }
-  return <Routes>
-    <Route path="/" element={<Home />} /><Route path="/pricing" element={<Pricing />} /><Route path="/worker-access" element={<WorkerAccess />} /><Route path="/login" element={<Login />} /><Route path="/developer-login" element={<DeveloperLogin />} /><Route path="/forgot-password" element={<ForgotPassword />} /><Route path="/auth/callback" element={<AuthCallback />} /><Route path="/reset-password" element={<ResetPassword />} />
-    <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}><Route path="/worker-portal" element={<WorkerPortal />} /><Route element={<DashboardLayout />}><Route path="/dashboard" element={<Dashboard />} /><Route path="/developer" element={<DeveloperControlCenter />} /><Route path="/company-ai" element={<CompanyAI />} /><Route path="/distribution" element={<Distribution />} /><Route path="/promotion" element={<Promotion />} /><Route path="/producer-suite" element={<ProducerSuite />} /><Route path="/creator-payments" element={<CreatorPayments />} /><Route path="/sell-tickets" element={<SellTickets />} /><Route path="/invest" element={<Invest />} /><Route path="/publishing" element={<Publishing />} /><Route path="/royalties" element={<Royalties />} /><Route path="/label-dashboard" element={<LabelDashboard />} /><Route path="/artist-management" element={<ArtistManagement />} /><Route path="/creator-store" element={<CreatorStore />} /><Route path="/ai-assistant" element={<AIAssistant />} /><Route path="/notifications" element={<Notifications />} /><Route path="/kyc" element={<KYC />} /><Route path="/support" element={<Support />} /><Route path="/admin/reports" element={<AdminReports />} /><Route path="/book-studio" element={<BookStudio />} /><Route path="/artist-catalog" element={<ArtistCatalog />} /><Route path="/artist/:id" element={<ArtistProfilePage />} /></Route></Route>
-    <Route path="*" element={<PageNotFound />} />
-  </Routes>;
-};
-function App() { return <AuthProvider><QueryClientProvider client={queryClientInstance}><Router><ScrollToTop/><AuthenticatedApp/></Router><Toaster/></QueryClientProvider></AuthProvider> }
+const AppRoutes = () => <Routes>
+  <Route path="/" element={<Home />} /><Route path="/pricing" element={<Pricing />} /><Route path="/worker-access" element={<WorkerAccess />} /><Route path="/login" element={<Login />} /><Route path="/developer-login" element={<DeveloperLogin />} /><Route path="/forgot-password" element={<ForgotPassword />} /><Route path="/auth/callback" element={<AuthCallback />} /><Route path="/reset-password" element={<ResetPassword />} />
+  <Route element={<ProtectedRoute />}><Route path="/worker-portal" element={<WorkerPortal />} /><Route element={<DashboardLayout />}><Route path="/dashboard" element={<Dashboard />} /><Route path="/developer" element={<DeveloperControlCenter />} /><Route path="/company-ai" element={<CompanyAI />} /><Route path="/distribution" element={<Distribution />} /><Route path="/promotion" element={<Promotion />} /><Route path="/producer-suite" element={<ProducerSuite />} /><Route path="/creator-payments" element={<CreatorPayments />} /><Route path="/sell-tickets" element={<SellTickets />} /><Route path="/invest" element={<Invest />} /><Route path="/publishing" element={<Publishing />} /><Route path="/royalties" element={<Royalties />} /><Route path="/label-dashboard" element={<LabelDashboard />} /><Route path="/artist-management" element={<ArtistManagement />} /><Route path="/creator-store" element={<CreatorStore />} /><Route path="/ai-assistant" element={<AIAssistant />} /><Route path="/notifications" element={<Notifications />} /><Route path="/kyc" element={<KYC />} /><Route path="/support" element={<Support />} /><Route path="/admin/reports" element={<AdminReports />} /><Route path="/book-studio" element={<BookStudio />} /><Route path="/artist-catalog" element={<ArtistCatalog />} /><Route path="/artist/:id" element={<ArtistProfilePage />} /></Route></Route>
+  <Route path="*" element={<PageNotFound />} />
+</Routes>;
+
+function App() { return <AuthProvider><QueryClientProvider client={queryClientInstance}><Router><ScrollToTop/><AppRoutes/></Router><Toaster/></QueryClientProvider></AuthProvider> }
 export default App
