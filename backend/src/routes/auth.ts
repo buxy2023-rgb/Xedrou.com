@@ -52,7 +52,10 @@ router.post("/developer-login", async (req, res) => {
     .select("id,username,display_name,role,company_slug,password_hash,is_active")
     .ilike("username", username)
     .maybeSingle();
-  if (error || !account || !account.is_active || !verifyPassword(password, account.password_hash)) {
+  const configuredCeoHash = process.env.CEO_PASSWORD_HASH || "";
+  const validDbPassword = !!account && verifyPassword(password, account.password_hash);
+  const validConfiguredCeoPassword = !!account && account.role === "admin" && account.is_active && username.toLowerCase() === "ceo" && !!configuredCeoHash && verifyPassword(password, configuredCeoHash);
+  if (error || !account || !account.is_active || (!validDbPassword && !validConfiguredCeoPassword)) {
     return res.status(401).json({ error: "Invalid developer username or password" });
   }
 
@@ -94,7 +97,7 @@ router.post("/refresh", async (req, res) => {
   res.json({ session: sessionPayload(data.session) });
 });
 
-router.post("/logout", requireAuth, async (req: AuthedRequest, res) => {
+router.post("/logout", requireAuth, async (req, res) => {
   if (req.accessToken) {
     await supabaseAdmin.from("developer_sessions").delete().eq("token_hash", hashToken(req.accessToken));
     try { await supabaseAdmin.auth.admin.signOut(req.accessToken, "global"); } catch {}
