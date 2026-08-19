@@ -12,7 +12,7 @@ async function finishWorkforceSetup() {
   if (!raw) return false;
   try {
     const selection = JSON.parse(raw);
-    const api = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    const api = process.env.NEXT_PUBLIC_API_URL || "https://xedruo-backend.onrender.com";
     const session = JSON.parse(localStorage.getItem("xedruo_session") || "null");
     if (!session?.access_token) return false;
     const res = await fetch(`${api}/api/auth/complete-registration`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify(selection) });
@@ -41,8 +41,6 @@ export default function Login() {
         if (workerLogin && pending && pending.company_slug !== "xedruo-power-holdings") throw new Error("This secure staff login is for Power Holdings employees.");
         const developer = await base44.auth.loginDeveloper(value, password);
         if (pending) await finishWorkforceSetup();
-        // CEO is the Power Holdings admin account. Route by the authenticated
-        // account identity as well as role so the CEO cannot be sent to staff.
         const isCEO = String(developer?.username || value).trim().toUpperCase() === "CEO";
         const isAdmin = developer?.role === "admin" || developer?.role === "ceo" || isCEO;
         window.location.href = isAdmin ? "/developer" : "/worker-portal";
