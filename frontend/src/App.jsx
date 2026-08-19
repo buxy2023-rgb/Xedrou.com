@@ -36,17 +36,26 @@ import AdminReports from './screens/AdminReports';
 import BookStudio from './screens/BookStudio';
 import ArtistCatalog from './screens/ArtistCatalog';
 import ArtistProfilePage from './screens/ArtistProfilePage';
+import AccountantDashboard from './screens/AccountantDashboard';
+import CustomerServiceWorkspace from './screens/CustomerServiceWorkspace';
+import HRWorkspace from './screens/HRWorkspace';
+import GovernorDashboard from './screens/GovernorDashboard';
 
 const AppRoutes = () => <Routes>
   <Route path="/" element={<Home />} />
   <Route path="/pricing" element={<Pricing />} />
   <Route path="/worker-access" element={<WorkerAccess />} />
   {/* Public-access mode: legacy login URLs no longer show a password form. */}
-  <Route path="/login" element={<Navigate to="/" replace />} />
-  <Route path="/developer-login" element={<Navigate to="/" replace />} />
-  <Route path="/forgot-password" element={<Navigate to="/" replace />} />
-  <Route path="/reset-password" element={<Navigate to="/" replace />} />
+  <Route path="/login" element={<Navigate to="/worker-access" replace />} />
+  <Route path="/developer-login" element={<Navigate to="/worker-access" replace />} />
+  <Route path="/forgot-password" element={<Navigate to="/worker-access" replace />} />
+  <Route path="/reset-password" element={<Navigate to="/worker-access" replace />} />
   <Route path="/auth/callback" element={<AuthCallback />} />
+  <Route path="/accountant" element={<AccountantDashboard />} />
+  <Route path="/customer-service" element={<CustomerServiceWorkspace />} />
+  <Route path="/hr" element={<HRWorkspace />} />
+  <Route path="/governor" element={<GovernorDashboard mode="operations" />} />
+  <Route path="/governor-finance" element={<GovernorDashboard mode="finance" />} />
   <Route element={<ProtectedRoute />}>
     <Route path="/worker-portal" element={<WorkerPortal />} />
     <Route element={<DashboardLayout />}>
