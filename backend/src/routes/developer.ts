@@ -8,8 +8,11 @@ const router = Router();
 const anthropic = process.env.ANTHROPIC_API_KEY ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }) : null;
 
 async function developerProfile(req: AuthedRequest) {
-  const { data } = await supabaseAdmin.from("profiles").select("id,email,full_name,role,job_role,is_active").eq("id", req.user!.id).maybeSingle();
-  return data;
+  const { data: profile } = await supabaseAdmin.from("profiles").select("id,email,full_name,role,job_role,is_active,company_slug").eq("id", req.user!.id).maybeSingle();
+  if (profile) return profile;
+  const { data: account } = await supabaseAdmin.from("developer_accounts").select("id,username,display_name,role,company_slug,is_active").eq("id", req.user!.id).maybeSingle();
+  if (!account) return null;
+  return { id: account.id, email: `${account.username.toLowerCase()}@xedruo.local`, full_name: account.display_name, role: account.role, job_role: "developer", company_slug: account.company_slug, is_active: account.is_active };
 }
 function canDevelop(profile: any) { return !!profile?.is_active && ["admin", "developer"].includes(profile.role); }
 async function assertProject(req: AuthedRequest) {
@@ -79,18 +82,8 @@ router.post("/projects/:id/execute", requireAuth, async (req: AuthedRequest, res
     if (buildError) return res.status(500).json({ error: buildError.message });
     const results: any[] = [];
     for (const action of plan.tool_actions.slice(0, 20)) {
-      const plugin = String(action?.plugin || ""); const toolAction = String(action?.action || "");
-      const started = Date.now();
-      try {
-        const status = pluginStatus()[plugin as keyof ReturnType<typeof pluginStatus>];
-        if (!status?.connected) throw new Error(`${plugin} is not connected`);
-        const output = await executePluginAction(plugin, toolAction, action.input || {}, { project, userId: req.user!.id, buildId: build.id });
-        await logToolRun({ project, userId: req.user!.id, buildId: build.id }, plugin, toolAction, "succeeded", action.input || {}, output);
-        results.push({ plugin, action: toolAction, status: "succeeded", output, durationMs: Date.now() - started });
-      } catch (err: any) {
-        await logToolRun({ project, userId: req.user!.id, buildId: build.id }, plugin, toolAction, "failed", action.input || {}, {}, err.message);
-        results.push({ plugin, action: toolAction, status: "failed", error: err.message, durationMs: Date.now() - started });
-      }
+      const plugin = String(action?.plugin || ""); const toolAction = String(action?.action || ""); const started = Date.now();
+      try { const status = pluginStatus()[plugin as keyof ReturnType<typeof pluginStatus>]; if (!status?.connected) throw new Error(`${plugin} is not connected`); const output = await executePluginAction(plugin, toolAction, action.input || {}, { project, userId: req.user!.id, buildId: build.id }); await logToolRun({ project, userId: req.user!.id, buildId: build.id }, plugin, toolAction, "succeeded", action.input || {}, output); results.push({ plugin, action: toolAction, status: "succeeded", output, durationMs: Date.now() - started }); } catch (err: any) { await logToolRun({ project, userId: req.user!.id, buildId: build.id }, plugin, toolAction, "failed", action.input || {}, {}, err.message); results.push({ plugin, action: toolAction, status: "failed", error: err.message, durationMs: Date.now() - started }); }
     }
     const failed = results.filter(r => r.status === "failed").length;
     await supabaseAdmin.from("company_builds").update({ status: failed ? "failed" : "completed", specification: { prompt: String(req.body?.prompt || ""), plan, execution: results, lifecycle: failed ? "failed" : "completed" }, updated_at: new Date().toISOString() }).eq("id", build.id);
