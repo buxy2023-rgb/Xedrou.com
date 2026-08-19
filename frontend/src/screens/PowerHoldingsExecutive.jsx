@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, BarChart3, BriefcaseBusiness, Building2, Crown, DollarSign, Users } from "lucide-react";
+import { ArrowRight, BarChart3, BriefcaseBusiness, Building2, Crown, DollarSign, HardDrive, Users } from "lucide-react";
 
 const ceos = Array.from({ length: 13 }, (_, i) => ({ id: i + 1, name: `CEO ${i + 1}`, company: `Power Holdings Company ${i + 1}` }));
 
@@ -19,7 +19,7 @@ export default function PowerHoldingsExecutive() {
             <button onClick={() => navigate("/worker-access")} className="rounded-xl border border-white/10 px-4 py-2 text-sm text-slate-300">Change company/function</button>
           </div>
 
-          <div className="mt-8 grid gap-4 md:grid-cols-2">
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
             <button onClick={() => navigate("/governor?company=xedruo-power-holdings")} className="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 p-5 text-left hover:bg-cyan-300/15">
               <BarChart3 className="text-cyan-300" />
               <h2 className="mt-3 text-xl font-bold">Governor Dashboard</h2>
@@ -31,6 +31,12 @@ export default function PowerHoldingsExecutive() {
               <h2 className="mt-3 text-xl font-bold">CFO Dashboard</h2>
               <p className="mt-2 text-sm text-slate-400">Finance control view for sales, income, expenses, failed transactions, cash performance and profitable growth.</p>
               <span className="mt-4 inline-flex items-center gap-2 text-sm text-emerald-300">Open CFO dashboard <ArrowRight size={16} /></span>
+            </button>
+            <button onClick={() => navigate("/platform-usage")} className="rounded-2xl border border-violet-300/20 bg-violet-300/10 p-5 text-left hover:bg-violet-300/15">
+              <HardDrive className="text-violet-300" />
+              <h2 className="mt-3 text-xl font-bold">Users & Storage</h2>
+              <p className="mt-2 text-sm text-slate-400">Monitor total users, active users, new registrations, files and storage capacity.</p>
+              <span className="mt-4 inline-flex items-center gap-2 text-sm text-violet-300">Open monitoring <ArrowRight size={16} /></span>
             </button>
           </div>
         </div>
