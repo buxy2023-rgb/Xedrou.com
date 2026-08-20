@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { freeAiFallback } from "./freeAiFallback";
 
 export type AiRole = "developer" | "accounting" | "sports" | "customer_service" | "hr" | "governor" | "cfo" | "operations" | "sales" | "marketing" | "procurement" | "legal" | "creative" | "elinit" | "general";
 type Provider = "openai" | "anthropic" | "gemini";
@@ -58,12 +59,7 @@ async function callGemini(instructions: string, input: string, role: AiRole) {
 async function callProvider(provider: Provider, instructions: string, input: string, role: AiRole) { if (provider === "openai") return callOpenAI(instructions, input, role); if (provider === "anthropic") return callAnthropic(instructions, input, role); return callGemini(instructions, input, role); }
 
 const COMPANY_SPECIALTIES: Record<string, string> = {
-  pay: "Pay: payments and financial services. Customer AI handles payment questions, failed transactions, refunds and service escalation.",
-  play: "Play: entertainment/play services. Customer AI handles service questions, account issues and complaints.",
-  sportruo: "Sportruo: sports platform. Sports AI handles analytics and probabilistic predictions; customer AI handles user support.",
-  hireuo: "Hireuo: employment platform. Hireuo AI supports CV analysis/revamping, job matching, candidate-employer matching and interview preparation; customer AI handles support.",
-  adom: "Adom: company-specific operations and customer service AI.", agruo: "Agruo: agriculture-focused operations, sales, customer service and analytics AI.", healthruo: "Healthruo: health-service operations and customer support AI; avoid unsupported medical diagnosis.",
-  xedruo_education: "Xedruo Education: education operations, learner support and academic assistance AI.", xedruo_capital: "Xedruo Capital: investment, finance, portfolio and customer-support AI; distinguish analysis from financial advice.", xedruo_energy: "Xedruo Energy: energy operations, service, sales and performance AI.", xedruo_logistics: "Xedruo Logistics: routing, delivery, operations, sales and customer-support AI.", xedruo_properties: "Xedruo Properties: property operations, listings, sales/leasing and customer-support AI.", spacetruo: "Spacetruo: space/project operations, customer service and growth AI.", enit_ai: "Enit AI: central AI orchestration and cross-company intelligence.", xedruo: "Xedruo: parent platform, executive intelligence, governance and cross-company orchestration."
+  pay: "Pay: payments and financial services. Customer AI handles payment questions, failed transactions, refunds and service escalation.", play: "Play: entertainment/play services. Customer AI handles service questions, account issues and complaints.", sportruo: "Sportruo: sports platform. Sports AI handles analytics and probabilistic predictions; customer AI handles user support.", hireuo: "Hireuo: employment platform. Hireuo AI supports CV analysis/revamping, job matching, candidate-employer matching and interview preparation; customer AI handles support.", adom: "Adom: company-specific operations and customer service AI.", agruo: "Agruo: agriculture-focused operations, sales, customer service and analytics AI.", healthruo: "Healthruo: health-service operations and customer support AI; avoid unsupported medical diagnosis.", xedruo_education: "Xedruo Education: education operations, learner support and academic assistance AI.", xedruo_capital: "Xedruo Capital: investment, finance, portfolio and customer-support AI; distinguish analysis from financial advice.", xedruo_energy: "Xedruo Energy: energy operations, service, sales and performance AI.", xedruo_logistics: "Xedruo Logistics: routing, delivery, operations, sales and customer-support AI.", xedruo_properties: "Xedruo Properties: property operations, listings, sales/leasing and customer-support AI.", spacetruo: "Spacetruo: space/project operations, customer service and growth AI.", enit_ai: "Enit AI: central AI orchestration and cross-company intelligence.", xedruo: "Xedruo: parent platform, executive intelligence, governance and cross-company orchestration."
 };
 
 export async function generateAiResponse({ role = "general", company, task, context, outputFormat }: { role?: AiRole; company?: string; task: string; context?: string; outputFormat?: "text" | "csv" | "sql" | "json" }) {
@@ -74,7 +70,33 @@ export async function generateAiResponse({ role = "general", company, task, cont
   const instructions = `${ROLE_INSTRUCTIONS[safeRole]}\n\n${companyInstruction}\n${formatInstruction}`;
   const input = [task, context ? `Context:\n${context}` : ""].filter(Boolean).join("\n\n");
   const errors: string[] = [];
-  for (const provider of PROVIDER_ORDER[safeRole]) { try { const result = await callProvider(provider, instructions, input, safeRole); return { ...result, role: safeRole, company: companyKey, fallbackUsed: errors.length > 0 }; } catch (error: any) { errors.push(`${provider}: ${error?.message || "request failed"}`); } }
-  throw new Error(`No configured AI provider could answer this request. ${errors.join(" | ")}`);
+  for (const provider of PROVIDER_ORDER[safeRole]) {
+    try {
+      const result = await callProvider(provider, instructions, input, safeRole);
+      return { ...result, role: safeRole, company: companyKey, mode: "provider", fallbackUsed: errors.length > 0 };
+    } catch (error: any) {
+      errors.push(`${provider}: ${error?.message || "request failed"}`);
+    }
+  }
+
+  // Free-first policy: Xedruo remains usable even when no paid AI provider is configured.
+  return {
+    text: freeAiFallback({ role: safeRole, company: companyKey, task: input, outputFormat }),
+    provider: "xedruo-free",
+    model: "free-fallback",
+    role: safeRole,
+    company: companyKey,
+    mode: "free",
+    fallbackUsed: true,
+    providerErrors: errors,
+  };
 }
-export function aiProviderStatus() { return { openai: { connected: !!env("OPENAI_API_KEY"), model: env("OPENAI_MODEL") || "role-routed default" }, anthropic: { connected: !!env("ANTHROPIC_API_KEY"), model: env("ANTHROPIC_MODEL") || "claude-sonnet-4-6" }, gemini: { connected: !!env("GEMINI_API_KEY"), model: env("GEMINI_MODEL") || "gemini-2.5-pro" } }; }
+
+export function aiProviderStatus() {
+  return {
+    free: { connected: true, model: "xedruo-free-fallback", cost: 0 },
+    openai: { connected: !!env("OPENAI_API_KEY"), model: env("OPENAI_MODEL") || "role-routed default" },
+    anthropic: { connected: !!env("ANTHROPIC_API_KEY"), model: env("ANTHROPIC_MODEL") || "claude-sonnet-4-6" },
+    gemini: { connected: !!env("GEMINI_API_KEY"), model: env("GEMINI_MODEL") || "gemini-2.5-pro" },
+  };
+}
