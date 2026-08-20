@@ -26,9 +26,10 @@ const configuredOrigins = (process.env.FRONTEND_ORIGIN || "")
   .map((origin) => origin.trim())
   .filter(Boolean);
 const allowedOrigins = new Set([
-  "https://xedrou-production-live.vercel.app",
-  "https://xedrou-production-live-xedruo-9003s-projects.vercel.app",
-  "https://xedrou-production-live-git-main-xedruo-9003s-projects.vercel.app",
+  "https://xedruo-web.onrender.com",
+  "https://xedruo-production-live.vercel.app",
+  "https://xedruo-production-live-xedruo-9003s-projects.vercel.app",
+  "https://xedruo-production-live-git-main-xedruo-9003s-projects.vercel.app",
   ...configuredOrigins,
   "http://localhost:3000",
 ]);
