@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Building2, Users, Code2, Calculator, Headphones, Wallet, Trophy, ShoppingCart, Sprout, HeartPulse, GraduationCap, BarChart3, SunMedium, Truck, Rocket, BrainCircuit, Music2, UserCog, Gauge } from "lucide-react";
+import { ArrowRight, Building2, Users, Code2, Wallet, Trophy, ShoppingCart, Sprout, HeartPulse, GraduationCap, BarChart3, SunMedium, Truck, Rocket, BrainCircuit, Music2, UserCog, Gauge } from "lucide-react";
 import Logo from "@/components/marketing/Logo";
 
 export const XEDRUO_COMPANIES = [
@@ -22,12 +22,9 @@ export const XEDRUO_COMPANIES = [
 ];
 
 const roles = [
-  [Code2,"Developer","Build and edit your company's website and technology backend."],
-  [Calculator,"Accountant","See sales, income, expenses and transaction health."],
-  [Headphones,"Customer Service","Manage customer questions, replies and case status."],
-  [UserCog,"HR","Register, assign and remove company staff."],
-  [Gauge,"Governor — Operations","Review weekly, monthly and yearly company performance."],
-  [BarChart3,"Governor — Finance","Review finance, sales, expenses and growth opportunities."]
+  [Code2,"Developer","Build, maintain and improve the technology for the 15 Xedruo companies."],
+  [UserCog,"CTO","Manage technology strategy, engineering standards, infrastructure and technical delivery across the group."],
+  [Gauge,"Governor","Oversee company operations, performance, governance and execution across the 15 companies."]
 ];
 
 export default function Home(){
@@ -37,6 +34,6 @@ export default function Home(){
     <section className="border-y border-white/10 bg-white/[.025] px-5 py-10"><div className="mx-auto max-w-7xl"><div className="mb-6 flex items-end justify-between"><div><div className="text-xs uppercase tracking-[.3em] text-slate-500">The group</div><h2 className="mt-1 text-2xl font-bold md:text-3xl">Choose a company</h2></div><span className="text-sm text-slate-500">15 total</span></div>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">{XEDRUO_COMPANIES.map(([slug,name,type,Icon,iconClass],i)=><Link key={slug} to={`/company/${slug}`} className="group min-w-0 rounded-2xl border border-white/10 bg-white/5 p-4 transition duration-200 hover:-translate-y-0.5 hover:border-cyan-300/30 hover:bg-white/[.08] md:p-5"><div className="flex items-center justify-between gap-3"><div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/5 ${iconClass}`}><Icon size={21} strokeWidth={1.8}/></div><span className="text-[11px] font-semibold text-slate-600">{String(i+1).padStart(2,"0")}</span></div><div className="mt-4 min-h-[58px]"><h3 className="text-sm font-semibold leading-5 text-white md:text-[15px]">{name}</h3><p className="mt-1 text-[11px] leading-4 text-slate-500">{type}</p></div><div className="mt-3 flex items-center gap-1 text-[11px] font-semibold text-cyan-300 opacity-80 transition group-hover:opacity-100">Open dashboard <ArrowRight size={13}/></div></Link>)}</div>
     </div></section>
-    <section className="mx-auto max-w-7xl px-5 py-14"><div className="text-center"><div className="text-xs uppercase tracking-[.3em] text-cyan-300">Workforce platform</div><h2 className="mt-2 text-2xl font-bold md:text-3xl">Your job. Your company. Your workstation.</h2><p className="mx-auto mt-3 max-w-2xl text-sm text-slate-400">Choose a function and Xedruo sends you directly to the tools for that role.</p></div><div className="mt-8 grid gap-3 md:grid-cols-2 lg:grid-cols-3">{roles.map(([Icon,title,desc])=><div key={title} className="rounded-2xl border border-white/10 bg-white/5 p-5"><Icon className="text-cyan-300" size={21}/><h3 className="mt-4 font-semibold">{title}</h3><p className="mt-2 text-sm leading-6 text-slate-400">{desc}</p></div>)}</div></section>
+    <section className="mx-auto max-w-7xl px-5 py-14"><div className="text-center"><div className="text-xs uppercase tracking-[.3em] text-cyan-300">Group management</div><h2 className="mt-2 text-2xl font-bold md:text-3xl">Manage company</h2><p className="mx-auto mt-3 max-w-2xl text-sm text-slate-400">One management layer for technology, technical leadership and governance across all 15 Xedruo companies.</p></div><div className="mt-8 grid gap-3 md:grid-cols-3">{roles.map(([Icon,title,desc])=><div key={title} className="rounded-2xl border border-white/10 bg-white/5 p-5"><Icon className="text-cyan-300" size={21}/><h3 className="mt-4 font-semibold">{title}</h3><p className="mt-2 text-sm leading-6 text-slate-400">{desc}</p></div>)}</div></section>
   </div>;
 }
