@@ -29,6 +29,25 @@ function hashPassword(password: string) {
 
 function hashToken(token: string) { return createHash("sha256").update(token).digest("hex"); }
 
+function isAllowedPreviewOrigin(origin: string) {
+  try {
+    const url = new URL(origin);
+    if (url.protocol !== "https:") return false;
+    const hostname = url.hostname.toLowerCase();
+    return hostname.endsWith("-xedruo-9003s-projects.vercel.app")
+      || hostname.startsWith("xedrou-") && hostname.endsWith(".vercel.app");
+  } catch {
+    return false;
+  }
+}
+
+function frontendOriginForRequest(req: any) {
+  const requestOrigin = String(req.get("origin") || "").trim();
+  const configured = String(process.env.FRONTEND_ORIGIN || "http://localhost:3000").split(",")[0].trim();
+  if (requestOrigin && (requestOrigin === configured || isAllowedPreviewOrigin(requestOrigin))) return requestOrigin;
+  return configured;
+}
+
 router.post("/register", async (req, res) => {
   const { email, password } = req.body || {};
   if (!email || !password) return res.status(400).json({ error: "email and password are required" });
@@ -179,7 +198,8 @@ router.get("/oauth-url", (req, res) => {
   const provider = String(req.query.provider || "google");
   const redirectPath = String(req.query.redirect_path || "/dashboard");
   const safeRedirect = redirectPath.startsWith("/") ? redirectPath : "/dashboard";
-  const callbackUrl = `${process.env.FRONTEND_ORIGIN || "http://localhost:3000"}/auth/callback?next=${encodeURIComponent(safeRedirect)}`;
+  const callbackOrigin = frontendOriginForRequest(req);
+  const callbackUrl = `${callbackOrigin}/auth/callback?next=${encodeURIComponent(safeRedirect)}`;
   const authorizeUrl = `${process.env.SUPABASE_URL}/auth/v1/authorize?provider=${encodeURIComponent(provider)}&flow_type=implicit&redirect_to=${encodeURIComponent(callbackUrl)}`;
   res.json({ url: authorizeUrl });
 });
