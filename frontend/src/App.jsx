@@ -12,6 +12,7 @@ import Home from './screens/Home';
 import Pricing from './screens/Pricing';
 import WorkerAccess from './screens/WorkerAccess';
 import WorkerPortal from './screens/WorkerPortal';
+import CountryRegistration from './screens/CountryRegistration';
 import DashboardLayout from './components/app/DashboardLayout';
 import Dashboard from './screens/Dashboard';
 import DeveloperControlCenter from './screens/DeveloperControlCenter';
@@ -51,6 +52,7 @@ const AppRoutes = () => <Routes>
   <Route path="/worker-access" element={<WorkerAccess />} />
   <Route path="/enit-ai" element={<AIAssistant />} />
   <Route path="/developer-workstation" element={<DeveloperWorkstation />} />
+  <Route path="/registration/country" element={<CountryRegistration />} />
   <Route element={<WorkstationShell />}>
     <Route path="/power-holdings" element={<PowerHoldingsExecutive />} />
     <Route path="/ceo/:id" element={<CEOExecutiveWorkspace />} />
