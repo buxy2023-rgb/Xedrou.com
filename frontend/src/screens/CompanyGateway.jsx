@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { ArrowRight, Loader2, ShieldCheck, Building2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
@@ -22,7 +22,7 @@ export default function CompanyGateway() {
   const company = useMemo(() => XEDRUO_COMPANIES.find((item) => item[0] === canonicalSlug), [canonicalSlug]);
 
   const openCompany = async (authenticatedUser = user) => {
-    if (!company || !authenticatedUser) return;
+    if (!company || !authenticatedUser || opening) return;
     setOpening(true);
     if (authenticatedUser.xedruo_id) {
       navigate(`/customer-dashboard?company=${encodeURIComponent(company[0])}`, { replace: true });
@@ -30,6 +30,12 @@ export default function CompanyGateway() {
     }
     navigate(`/phone-registration?next=${encodeURIComponent(`/customer-dashboard?company=${company[0]}`)}`, { replace: true });
   };
+
+  useEffect(() => {
+    if (!isLoadingAuth && isAuthenticated && user && company && !opening) {
+      openCompany(user);
+    }
+  }, [isLoadingAuth, isAuthenticated, user, company]);
 
   if (!company) return <div className="min-h-screen bg-slate-950 text-white grid place-items-center p-6"><div className="text-center"><h1 className="text-2xl font-bold">Company not found</h1><button onClick={() => navigate("/")} className="mt-4 text-cyan-300">Back to Xedruo</button></div></div>;
 
