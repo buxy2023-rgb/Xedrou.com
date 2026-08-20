@@ -24,11 +24,11 @@ export function pluginStatus() {
   };
 }
 
-async function githubApi(path: string, init: RequestInit = {}) {
+async function githubApi(path: string, init: RequestInit = {}): Promise<any> {
   const token = env("GITHUB_TOKEN");
   if (!token) throw new Error("GitHub is not connected: GITHUB_TOKEN is missing");
   const response = await fetch(`https://api.github.com${path}`, { ...init, headers: { ...jsonHeaders, Authorization: `Bearer ${token}`, ...(init.headers || {}) } });
-  const body = await response.json().catch(() => ({}));
+  const body: any = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(`GitHub ${response.status}: ${body.message || response.statusText}`);
   return body;
 }
@@ -37,17 +37,17 @@ async function githubWriteFiles(files: Array<{ path: string; content: string }>,
   const repo = env("GITHUB_REPOSITORY");
   if (!repo || !repo.includes("/")) throw new Error("GITHUB_REPOSITORY must be owner/repository");
   const [owner, name] = repo.split("/", 2);
-  const repoInfo = await githubApi(`/repos/${owner}/${name}`);
+  const repoInfo: any = await githubApi(`/repos/${owner}/${name}`);
   await githubApi(`/repos/${owner}/${name}/git/ref/heads/${encodeURIComponent(repoInfo.default_branch)}`);
-  const ref = await githubApi(`/repos/${owner}/${name}/git/ref/heads/${encodeURIComponent(repoInfo.default_branch)}`);
+  const ref: any = await githubApi(`/repos/${owner}/${name}/git/ref/heads/${encodeURIComponent(repoInfo.default_branch)}`);
   await githubApi(`/repos/${owner}/${name}/git/refs`, { method: "POST", body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: ref.object.sha }) });
   const results = [];
   for (const file of files.slice(0, 40)) {
     const existing = await fetch(`https://api.github.com/repos/${owner}/${name}/contents/${file.path}?ref=${encodeURIComponent(branch)}`, { headers: { ...jsonHeaders, Authorization: `Bearer ${env("GITHUB_TOKEN")}` } });
-    const existingBody = await existing.json().catch(() => ({}));
+    const existingBody: any = await existing.json().catch(() => ({}));
     const payload: any = { message, content: Buffer.from(file.content, "utf8").toString("base64"), branch };
     if (existing.ok && existingBody.sha) payload.sha = existingBody.sha;
-    const written = await githubApi(`/repos/${owner}/${name}/contents/${file.path}`, { method: "PUT", body: JSON.stringify(payload) });
+    const written: any = await githubApi(`/repos/${owner}/${name}/contents/${file.path}`, { method: "PUT", body: JSON.stringify(payload) });
     results.push({ path: file.path, commit: written.commit?.sha || null });
   }
   return { repository: repo, branch, files: results };
@@ -77,7 +77,7 @@ async function vercelDeploy() {
 async function figmaInspect(fileKey: string) {
   if (!env("FIGMA_ACCESS_TOKEN")) throw new Error("Figma is not connected: FIGMA_ACCESS_TOKEN is missing");
   const response = await fetch(`https://api.figma.com/v1/files/${encodeURIComponent(fileKey)}?depth=1`, { headers: { "X-Figma-Token": env("FIGMA_ACCESS_TOKEN") } });
-  const body = await response.json().catch(() => ({}));
+  const body: any = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(`Figma ${response.status}: ${body.err || response.statusText}`);
   return { key: fileKey, name: body.name, lastModified: body.lastModified, version: body.version, pages: (body.document?.children || []).map((p: any) => ({ id: p.id, name: p.name })) };
 }
@@ -92,7 +92,7 @@ export async function executePluginAction(plugin: string, action: string, input:
   }
   if (plugin === "github" && action === "read_repo") {
     const repo = env("GITHUB_REPOSITORY");
-    const info = await githubApi(`/repos/${repo}`);
+    const info: any = await githubApi(`/repos/${repo}`);
     return { repository: info.full_name, defaultBranch: info.default_branch, private: info.private, url: info.html_url };
   }
   if (plugin === "supabase" && action === "run_sql") return supabaseRunSql(input?.sql);
