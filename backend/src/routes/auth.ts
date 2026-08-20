@@ -46,8 +46,6 @@ router.post("/login", async (req, res) => {
   res.json({ session: sessionPayload(data.session) });
 });
 
-// One-time CEO credential setup/reset. The setup token is supplied only through Render's environment.
-// This changes the existing CEO developer account; it never creates a second CEO account.
 router.get("/ceo-setup", (req, res) => {
   const token = String(req.query.token || "");
   const configuredToken = String(process.env.CEO_SETUP_TOKEN || "");
@@ -72,31 +70,20 @@ router.post("/ceo-setup", async (req, res) => {
   res.type("html").send("<!doctype html><html><body style=\"font-family:Arial;background:#0b1424;color:white;text-align:center;padding:60px\"><h1>CEO password updated successfully.</h1><p>You can now return to Xedruo and sign in as CEO.</p></body></html>");
 });
 
-// Dedicated internal login for Power Holdings Developer Unit.
-// Passwords are verified against scrypt hashes; the plaintext password is never stored.
 router.post("/developer-login", async (req, res) => {
   const username = String(req.body?.username || "").trim();
   const password = String(req.body?.password || "");
   if (!username || !password) return res.status(400).json({ error: "username and password are required" });
-
-  const { data: account, error } = await supabaseAdmin
-    .from("developer_accounts")
-    .select("id,username,display_name,role,company_slug,password_hash,is_active")
-    .ilike("username", username)
-    .maybeSingle();
+  const { data: account, error } = await supabaseAdmin.from("developer_accounts").select("id,username,display_name,role,company_slug,password_hash,is_active").ilike("username", username).maybeSingle();
   const configuredCeoHash = process.env.CEO_PASSWORD_HASH || "";
   const validDbPassword = !!account && verifyPassword(password, account.password_hash);
   const validConfiguredCeoPassword = !!account && account.role === "admin" && account.is_active && username.toLowerCase() === "ceo" && !!configuredCeoHash && verifyPassword(password, configuredCeoHash);
-  if (error || !account || !account.is_active || (!validDbPassword && !validConfiguredCeoPassword)) {
-    return res.status(401).json({ error: "Invalid developer username or password" });
-  }
-
+  if (error || !account || !account.is_active || (!validDbPassword && !validConfiguredCeoPassword)) return res.status(401).json({ error: "Invalid developer username or password" });
   const token = randomBytes(32).toString("base64url");
   const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString();
   await supabaseAdmin.from("developer_sessions").delete().eq("account_id", account.id);
   const { error: sessionError } = await supabaseAdmin.from("developer_sessions").insert({ account_id: account.id, token_hash: hashToken(token), expires_at: expiresAt });
   if (sessionError) return res.status(500).json({ error: "Unable to create developer session" });
-
   res.json({ session: { access_token: token, refresh_token: null, expires_at: Math.floor(new Date(expiresAt).getTime() / 1000) }, developer: { username: account.username, name: account.display_name, role: account.role, company_slug: account.company_slug } });
 });
 
@@ -148,7 +135,9 @@ router.get("/me", requireAuth, async (req: AuthedRequest, res) => {
     const { data: created } = await supabaseAdmin.from("profiles").upsert({ id: req.user!.id, email: req.user!.email, role: "user" }, { onConflict: "id" }).select().single();
     profile = created;
   }
-  res.json({ id: req.user!.id, email: req.user!.email, role: profile?.role ?? "user", ...profile });
+  const { data: xedruoUser } = await supabaseAdmin.from("xedruo_users").select("xedruo_id,phone_account_number,phone_verified,email_verified,display_name,country_code,currency_code,time_zone,locale,status").eq("id", req.user!.id).maybeSingle();
+  const metadata = req.user!.user_metadata || {};
+  res.json({ id: req.user!.id, email: req.user!.email, role: profile?.role ?? "user", ...profile, ...xedruoUser, phone_number: metadata.phone_number || xedruoUser?.phone_account_number || null });
 });
 
 router.post("/verify-otp", async (req, res) => {
@@ -189,8 +178,9 @@ router.post("/reset-password", async (req, res) => {
 router.get("/oauth-url", (req, res) => {
   const provider = String(req.query.provider || "google");
   const redirectPath = String(req.query.redirect_path || "/dashboard");
-  const callbackUrl = `${process.env.FRONTEND_ORIGIN || "http://localhost:3000"}/auth/callback?next=${encodeURIComponent(redirectPath)}`;
-  const authorizeUrl = `${process.env.SUPABASE_URL}/auth/v1/authorize?provider=${encodeURIComponent(provider)}&redirect_to=${encodeURIComponent(callbackUrl)}`;
+  const safeRedirect = redirectPath.startsWith("/") ? redirectPath : "/dashboard";
+  const callbackUrl = `${process.env.FRONTEND_ORIGIN || "http://localhost:3000"}/auth/callback?next=${encodeURIComponent(safeRedirect)}`;
+  const authorizeUrl = `${process.env.SUPABASE_URL}/auth/v1/authorize?provider=${encodeURIComponent(provider)}&flow_type=implicit&redirect_to=${encodeURIComponent(callbackUrl)}`;
   res.json({ url: authorizeUrl });
 });
 
