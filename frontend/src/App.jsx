@@ -56,7 +56,7 @@ const AppRoutes = () => <Routes>
   <Route path="/customer-dashboard" element={<CustomerDashboard />} />
   <Route path="/pricing" element={<Pricing />} />
   <Route path="/worker-access" element={<WorkerAccess />} />
-  <Route path="/enit-ai" element={<AIAssistant />} />
+  <Route path="/xedruo-ai" element={<AIAssistant />} />
   <Route path="/developer-workstation" element={<DeveloperWorkstation />} />
   <Route path="/registration/country" element={<CountryRegistration />} />
   <Route element={<WorkstationShell />}>
