@@ -32,7 +32,7 @@ const roles = [
 
 export default function Home(){
   const navigate = useNavigate();
-  const hostedCompany = import.meta?.env?.VITE_COMPANY_SLUG || "";
+  const hostedCompany = process.env.NEXT_PUBLIC_COMPANY_SLUG || "";
   useEffect(() => { if (hostedCompany) navigate(`/company/${hostedCompany}`, { replace: true }); }, [hostedCompany, navigate]);
   if (hostedCompany) return <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center"><div className="text-center"><div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-white/20 border-t-cyan-300"/><p className="text-sm text-slate-400">Opening Xedruo company...</p></div></div>;
   return <div className="min-h-screen bg-slate-950 text-white">
