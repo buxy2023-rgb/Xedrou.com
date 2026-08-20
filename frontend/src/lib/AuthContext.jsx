@@ -22,9 +22,6 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       setUser(null);
       setIsAuthenticated(false);
-      // A missing session is the normal logged-out state. Do not set a
-      // global auth_required error here: AuthenticatedApp also renders the
-      // public /login route, and doing so creates a redirect loop on /login.
       if (error.status && error.status !== 401 && error.status !== 403) {
         setAuthError({ type: 'unknown', message: error.message || 'Authentication service error' });
       } else {
@@ -46,10 +43,10 @@ export const AuthProvider = ({ children }) => {
     return unsubscribe;
   }, [checkUserAuth]);
 
-  const logout = (shouldRedirect = true) => {
+  const logout = (shouldRedirect = true, redirectTo = '/login') => {
     setUser(null);
     setIsAuthenticated(false);
-    base44.auth.logout(shouldRedirect ? '/login' : undefined);
+    base44.auth.logout(shouldRedirect ? redirectTo : undefined);
   };
 
   const navigateToLogin = () => {
