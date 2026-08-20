@@ -27,6 +27,7 @@ const auth = {
   setToken: async (accessToken) => { const current = loadSession() || {}; saveSession({ ...current, access_token: accessToken }); return accessToken; },
   logout: async (redirectTo) => { try { await apiFetch("/api/auth/logout", { method: "POST" }); } catch {} saveSession(null); if (redirectTo) window.location.href = "/login"; },
   redirectToLogin: (returnTo) => { const url = new URL("/login", window.location.origin); if (returnTo) url.searchParams.set("from_url", returnTo); window.location.href = url.toString(); },
+  saveRegistrationCountry: async ({ country_code, currency_code, time_zone, locale = "en" }) => apiFetch("/api/registration/country", { method: "POST", body: { country_code, currency_code, time_zone, locale } }),
   _saveSession: saveSession, _onAuthStateChanged: onAuthStateChanged,
 };
 const integrations = { Core: { UploadFile: async ({ file }) => { const form = new FormData(); form.append("file", file); return apiFetch("/api/integrations/upload-file", { method: "POST", body: form, isForm: true }); }, InvokeLLM: async ({ prompt, system, response_json_schema }) => { const data = await apiFetch("/api/integrations/invoke-llm", { method: "POST", body: { prompt, system, response_json_schema } }); return data.response; }, SendEmail: async ({ to, subject, body }) => apiFetch("/api/integrations/send-email", { method: "POST", body: { to, subject, body } }), TranscribeAudio: async ({ audio_url }) => { const data = await apiFetch("/api/integrations/transcribe-audio", { method: "POST", body: { audio_url } }); return data.text; } } };
