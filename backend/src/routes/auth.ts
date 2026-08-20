@@ -42,7 +42,13 @@ function isAllowedPreviewOrigin(origin: string) {
 }
 
 function isAllowedFrontendOrigin(origin: string) {
-  if (origin === "https://xedruo-web.onrender.com") return true;
+  try {
+    const url = new URL(origin);
+    if (url.protocol !== "https:") return false;
+    const hostname = url.hostname.toLowerCase();
+    if (hostname === "xedruo-web.onrender.com" || (hostname.startsWith("xedruo-") && hostname.endsWith(".onrender.com"))) return true;
+    if (hostname === "xedruo.com" || hostname === "www.xedruo.com" || hostname.endsWith(".xedruo.com")) return true;
+  } catch {}
   const configuredOrigins = String(process.env.FRONTEND_ORIGIN || "")
     .split(",")
     .map((value) => value.trim())
