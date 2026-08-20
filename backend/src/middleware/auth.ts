@@ -3,7 +3,7 @@ import { createHash } from "crypto";
 import { supabaseAdmin } from "../config/supabase";
 
 export interface AuthedRequest extends Request {
-  user?: { id: string; email?: string; role?: string; username?: string; company_slug?: string };
+  user?: { id: string; email?: string; role?: string; username?: string; company_slug?: string; user_metadata?: Record<string, any> };
   accessToken?: string;
 }
 
@@ -22,7 +22,7 @@ export async function optionalAuth(req: AuthedRequest, _res: Response, next: Nex
   const { data, error } = await supabaseAdmin.auth.getUser(token);
   if (!error && data.user) {
     req.accessToken = token;
-    req.user = { id: data.user.id, email: data.user.email ?? undefined };
+    req.user = { id: data.user.id, email: data.user.email ?? undefined, user_metadata: data.user.user_metadata || {} };
     const { data: profile } = await supabaseAdmin.from("profiles").select("role,company_slug").eq("id", data.user.id).maybeSingle();
     if (profile?.role) req.user.role = profile.role;
     if (profile?.company_slug) req.user.company_slug = profile.company_slug;
@@ -38,7 +38,7 @@ export async function optionalAuth(req: AuthedRequest, _res: Response, next: Nex
   const account: any = devSession?.developer_accounts;
   if (devSession && account?.is_active) {
     req.accessToken = token;
-    req.user = { id: account.id, email: `${account.username.toLowerCase()}@xedruo.local`, role: account.role, username: account.username, company_slug: account.company_slug };
+    req.user = { id: account.id, email: `${account.username.toLowerCase()}@xedruo.local`, role: account.role, username: account.username, company_slug: account.company_slug, user_metadata: {} };
   }
   next();
 }
