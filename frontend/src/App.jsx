@@ -9,6 +9,9 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import WorkstationShell from './components/WorkstationShell';
 import AuthCallback from './screens/AuthCallback';
 import Home from './screens/Home';
+import CompanyGateway from './screens/CompanyGateway';
+import PhoneRegistration from './screens/PhoneRegistration';
+import CustomerDashboard from './screens/CustomerDashboard';
 import Pricing from './screens/Pricing';
 import WorkerAccess from './screens/WorkerAccess';
 import WorkerPortal from './screens/WorkerPortal';
@@ -48,6 +51,9 @@ import PayAndPlay from './screens/PayAndPlay';
 
 const AppRoutes = () => <Routes>
   <Route path="/" element={<Home />} />
+  <Route path="/company/:slug" element={<CompanyGateway />} />
+  <Route path="/phone-registration" element={<PhoneRegistration />} />
+  <Route path="/customer-dashboard" element={<CustomerDashboard />} />
   <Route path="/pricing" element={<Pricing />} />
   <Route path="/worker-access" element={<WorkerAccess />} />
   <Route path="/enit-ai" element={<AIAssistant />} />

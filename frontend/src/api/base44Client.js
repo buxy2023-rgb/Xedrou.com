@@ -25,6 +25,7 @@ const auth = {
   resetPasswordRequest: async (email) => apiFetch("/api/auth/reset-password-request", { method: "POST", body: { email } }),
   resetPassword: async ({ newPassword }) => { const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, "")); const recoveryAccessToken = hashParams.get("access_token"); return apiFetch("/api/auth/reset-password", { method: "POST", body: { recoveryAccessToken, newPassword } }); },
   setToken: async (accessToken) => { const current = loadSession() || {}; saveSession({ ...current, access_token: accessToken }); return accessToken; },
+  savePhoneNumber: async (phone_number) => apiFetch("/api/registration/phone", { method: "POST", body: { phone_number } }),
   logout: async (redirectTo) => { try { await apiFetch("/api/auth/logout", { method: "POST" }); } catch {} saveSession(null); if (redirectTo) window.location.href = "/login"; },
   redirectToLogin: (returnTo) => { const url = new URL("/login", window.location.origin); if (returnTo) url.searchParams.set("from_url", returnTo); window.location.href = url.toString(); },
   saveRegistrationCountry: async ({ country_code, currency_code, time_zone, locale = "en" }) => apiFetch("/api/registration/country", { method: "POST", body: { country_code, currency_code, time_zone, locale } }),
