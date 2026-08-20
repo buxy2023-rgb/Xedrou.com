@@ -62,7 +62,7 @@ router.post("/complete", requireAuth, async (req: AuthedRequest, res) => {
     xedruo_id: String(generated).padStart(10, "0"),
     phone_account_number: phone,
     phone_verified: false,
-    email_verified: !!req.user!.email_confirmed_at,
+    email_verified: false,
     display_name: req.user!.user_metadata?.full_name || req.user!.user_metadata?.name || req.user!.email,
     country_code,
     currency_code,
