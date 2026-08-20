@@ -30,24 +30,29 @@ const allowedOrigins = new Set([
   "https://xedruo-production-live.vercel.app",
   "https://xedruo-production-live-xedruo-9003s-projects.vercel.app",
   "https://xedruo-production-live-git-main-xedruo-9003s-projects.vercel.app",
+  "https://xedruo.com",
+  "https://www.xedruo.com",
   ...configuredOrigins,
   "http://localhost:3000",
 ]);
 
-function isAllowedXedruoPreviewOrigin(origin: string) {
+function isAllowedXedruoOrigin(origin: string) {
   try {
     const url = new URL(origin);
     if (url.protocol !== "https:") return false;
     const hostname = url.hostname.toLowerCase();
-    return hostname.endsWith("-xedruo-9003s-projects.vercel.app")
-      || hostname.startsWith("xedrou-") && hostname.endsWith(".vercel.app");
+    // All 14 company Render frontends share the Xedruo repo but have their own
+    // public service hostnames. Socket.IO and direct API calls must work from them.
+    return (hostname.startsWith("xedruo-") && hostname.endsWith(".onrender.com"))
+      || hostname.endsWith("-xedruo-9003s-projects.vercel.app")
+      || hostname.endsWith(".xedruo.com");
   } catch {
     return false;
   }
 }
 
 function isAllowedOrigin(origin?: string) {
-  return !origin || allowedOrigins.has(origin) || isAllowedXedruoPreviewOrigin(origin);
+  return !origin || allowedOrigins.has(origin) || isAllowedXedruoOrigin(origin);
 }
 
 app.set("trust proxy", 1);
