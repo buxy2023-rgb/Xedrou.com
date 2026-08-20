@@ -2,12 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 
-// Supabase's OAuth authorize flow redirects the browser back here with the
-// session in the URL fragment: #access_token=...&refresh_token=...&expires_at=...
-// (Express's /api/auth/oauth-url built the authorize link that points at this
-// page — see backend/src/routes/auth.ts.) This page's only job is to pull those
-// tokens out of the URL and hand them to base44Client's local session store, the
-// same way email/password login does.
+// Supabase OAuth returns the session in the URL fragment. After Google sign-in,
+// every new account must complete country selection before entering Xedruo.
 export default function AuthCallback() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -31,7 +27,7 @@ export default function AuthCallback() {
     });
 
     const next = searchParams.get('next') || '/dashboard';
-    navigate(next, { replace: true });
+    navigate(`/registration/country?next=${encodeURIComponent(next)}`, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
