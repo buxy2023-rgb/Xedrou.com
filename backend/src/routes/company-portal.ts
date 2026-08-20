@@ -5,7 +5,7 @@ import { AuthedRequest, requireAuth } from "../middleware/auth";
 const router = Router();
 
 const COMPANY_SLUGS = new Set([
-  "xedruo-power-holdings","xedruo","sportruo","hireruo","adom","agruo","heathrou","xedruo-education","xedruo-capital","xedruo-energy","xedruo-logistics","xedruo-properties","spacetruo","xedruo-ai"
+  "xedruo-power-holdings","pay-and-play","sportruo","hireruo","adom","agruo","heathrou","xedruo-education","xedruo-capital","xedruo-energy","xedruo-logistics","xedruo-properties","spacetruo","xedruo-ai","xedruo"
 ]);
 
 async function profile(req: AuthedRequest) {
