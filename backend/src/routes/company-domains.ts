@@ -65,7 +65,7 @@ router.post("/:id/activate", async (req: AuthedRequest, res) => {
   const projectId = (project?.specification as any)?.vercelProjectId || process.env.VERCEL_PROJECT_ID;
   if (!token || !projectId) return res.status(503).json({ error: "Domain is verified. Xedruo still needs its Vercel deployment connection configured before it can activate the live domain." });
   const response = await fetch(`https://api.vercel.com/v10/projects/${encodeURIComponent(projectId)}/domains`, { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ name: record.domain }) });
-  const payload = await response.json().catch(() => ({}));
+  const payload: any = await response.json().catch(() => ({}));
   if (!response.ok && response.status !== 409) return res.status(response.status).json({ error: payload?.error?.message || "Could not activate domain" });
   await supabaseAdmin.from("company_domains").update({ status: "active", updated_at: new Date().toISOString() }).eq("id", record.id);
   res.json({ active: true, domain: record.domain });
