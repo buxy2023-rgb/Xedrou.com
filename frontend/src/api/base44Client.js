@@ -18,7 +18,7 @@ const auth = {
   me: async () => { if (!loadSession()?.access_token) { const err = new Error("Not authenticated"); err.status = 401; throw err; } return apiFetch("/api/auth/me"); },
   loginViaEmailPassword: async (email, password) => { const data = await apiFetch("/api/auth/login", { method: "POST", body: { email, password } }); saveSession(data.session); },
   loginDeveloper: async (username, password) => { const data = await apiFetch("/api/auth/developer-login", { method: "POST", body: { username, password } }); saveSession(data.session); return data.developer; },
-  loginWithProvider: async (provider, redirectPath = "/dashboard") => { const { url } = await apiFetch(`/api/auth/oauth-url?provider=${encodeURIComponent(provider)}&redirect_path=${encodeURIComponent(redirectPath)}`); window.location.href = url; },
+  loginWithProvider: async (provider, redirectPath = "/dashboard") => { const params = new URLSearchParams({ provider, redirect_path: redirectPath }); if (typeof window !== "undefined") params.set("frontend_origin", window.location.origin); const { url } = await apiFetch(`/api/auth/oauth-url?${params.toString()}`); window.location.href = url; },
   register: async ({ email, password }) => { const data = await apiFetch("/api/auth/register", { method: "POST", body: { email, password } }); if (data.session) saveSession(data.session); return data; },
   verifyOtp: async ({ email, otpCode }) => { const data = await apiFetch("/api/auth/verify-otp", { method: "POST", body: { email, otpCode } }); saveSession(data.session); return { access_token: data.session?.access_token }; },
   resendOtp: async (email) => apiFetch("/api/auth/resend-otp", { method: "POST", body: { email } }),
