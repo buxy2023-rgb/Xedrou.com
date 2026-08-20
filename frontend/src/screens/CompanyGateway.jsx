@@ -1,9 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { ArrowRight, Loader2, ShieldCheck, Building2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 import { base44 } from "@/api/base44Client";
-import { XEDRUO_COMPANIES } from "./Home";
+import { XEDRUO_COMPANIES, XEDRUO_COMPANY_ALIASES } from "./Home";
 
 export default function CompanyGateway() {
   const { slug } = useParams();
@@ -17,7 +17,9 @@ export default function CompanyGateway() {
   const [otp, setOtp] = useState("");
   const [verificationPending, setVerificationPending] = useState(false);
   const [error, setError] = useState("");
-  const company = useMemo(() => XEDRUO_COMPANIES.find((item) => item[0] === slug), [slug]);
+
+  const canonicalSlug = XEDRUO_COMPANY_ALIASES[slug] || slug;
+  const company = useMemo(() => XEDRUO_COMPANIES.find((item) => item[0] === canonicalSlug), [canonicalSlug]);
 
   const openCompany = async (authenticatedUser = user) => {
     if (!company || !authenticatedUser) return;
