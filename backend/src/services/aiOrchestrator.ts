@@ -1,11 +1,11 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { freeAiFallback } from "./freeAiFallback";
+import { callLocalAi, localAiStatus } from "./localAiProvider";
 
 export type AiRole = "developer" | "accounting" | "sports" | "customer_service" | "hr" | "governor" | "cfo" | "operations" | "sales" | "marketing" | "procurement" | "legal" | "creative" | "elinit" | "general";
-type Provider = "openai" | "anthropic" | "gemini";
+type Provider = "local" | "openai" | "anthropic" | "gemini";
 
 export const XEDRUO_APPS = ["pay", "play", "sportruo", "hireuo", "adom", "agruo", "healthruo", "xedruo_education", "xedruo_capital", "xedruo_energy", "xedruo_logistics", "xedruo_properties", "spacetruo", "enit_ai", "xedruo"] as const;
-
 const env = (name: string) => process.env[name]?.trim() || "";
 
 const ROLE_INSTRUCTIONS: Record<AiRole, string> = {
@@ -27,13 +27,14 @@ const ROLE_INSTRUCTIONS: Record<AiRole, string> = {
 };
 
 const PROVIDER_ORDER: Record<AiRole, Provider[]> = {
-  developer: ["openai", "anthropic", "gemini"], accounting: ["anthropic", "openai", "gemini"], sports: ["gemini", "openai", "anthropic"], customer_service: ["openai", "anthropic", "gemini"], hr: ["anthropic", "openai", "gemini"], governor: ["openai", "anthropic", "gemini"], cfo: ["openai", "anthropic", "gemini"], operations: ["openai", "anthropic", "gemini"], sales: ["openai", "anthropic", "gemini"], marketing: ["anthropic", "openai", "gemini"], procurement: ["openai", "anthropic", "gemini"], legal: ["anthropic", "openai", "gemini"], creative: ["anthropic", "openai", "gemini"], elinit: ["openai", "anthropic", "gemini"], general: ["openai", "anthropic", "gemini"]
+  developer: ["local", "openai", "anthropic", "gemini"], accounting: ["local", "anthropic", "openai", "gemini"], sports: ["local", "gemini", "openai", "anthropic"], customer_service: ["local", "openai", "anthropic", "gemini"], hr: ["local", "anthropic", "openai", "gemini"], governor: ["local", "openai", "anthropic", "gemini"], cfo: ["local", "openai", "anthropic", "gemini"], operations: ["local", "openai", "anthropic", "gemini"], sales: ["local", "openai", "anthropic", "gemini"], marketing: ["local", "anthropic", "openai", "gemini"], procurement: ["local", "openai", "anthropic", "gemini"], legal: ["local", "anthropic", "openai", "gemini"], creative: ["local", "anthropic", "openai", "gemini"], elinit: ["local", "openai", "anthropic", "gemini"], general: ["local", "openai", "anthropic", "gemini"]
 };
 
 function providerModel(provider: Provider, role: AiRole) {
   if (provider === "openai") return env("OPENAI_MODEL") || (role === "developer" ? "gpt-5.6-sol" : "gpt-5.6-terra");
   if (provider === "anthropic") return env("ANTHROPIC_MODEL") || "claude-sonnet-4-6";
-  return env("GEMINI_MODEL") || "gemini-2.5-pro";
+  if (provider === "gemini") return env("GEMINI_MODEL") || "gemini-2.5-pro";
+  return env("XEDRUO_LOCAL_AI_MODEL") || "local-model";
 }
 
 async function callOpenAI(instructions: string, input: string, role: AiRole) {
@@ -56,7 +57,13 @@ async function callGemini(instructions: string, input: string, role: AiRole) {
   const body: any = await response.json().catch(() => ({})); if (!response.ok) throw new Error(body?.error?.message || `Gemini request failed (${response.status})`);
   const text = (body.candidates || []).flatMap((candidate: any) => candidate.content?.parts || []).map((part: any) => part.text || "").join("\n").trim(); if (!text) throw new Error("Gemini returned no text"); return { text, provider: "gemini" as Provider, model };
 }
-async function callProvider(provider: Provider, instructions: string, input: string, role: AiRole) { if (provider === "openai") return callOpenAI(instructions, input, role); if (provider === "anthropic") return callAnthropic(instructions, input, role); return callGemini(instructions, input, role); }
+
+async function callProvider(provider: Provider, instructions: string, input: string, role: AiRole) {
+  if (provider === "local") return callLocalAi(instructions, input);
+  if (provider === "openai") return callOpenAI(instructions, input, role);
+  if (provider === "anthropic") return callAnthropic(instructions, input, role);
+  return callGemini(instructions, input, role);
+}
 
 const COMPANY_SPECIALTIES: Record<string, string> = {
   pay: "Pay: payments and financial services. Customer AI handles payment questions, failed transactions, refunds and service escalation.", play: "Play: entertainment/play services. Customer AI handles service questions, account issues and complaints.", sportruo: "Sportruo: sports platform. Sports AI handles analytics and probabilistic predictions; customer AI handles user support.", hireuo: "Hireuo: employment platform. Hireuo AI supports CV analysis/revamping, job matching, candidate-employer matching and interview preparation; customer AI handles support.", adom: "Adom: company-specific operations and customer service AI.", agruo: "Agruo: agriculture-focused operations, sales, customer service and analytics AI.", healthruo: "Healthruo: health-service operations and customer support AI; avoid unsupported medical diagnosis.", xedruo_education: "Xedruo Education: education operations, learner support and academic assistance AI.", xedruo_capital: "Xedruo Capital: investment, finance, portfolio and customer-support AI; distinguish analysis from financial advice.", xedruo_energy: "Xedruo Energy: energy operations, service, sales and performance AI.", xedruo_logistics: "Xedruo Logistics: routing, delivery, operations, sales and customer-support AI.", xedruo_properties: "Xedruo Properties: property operations, listings, sales/leasing and customer-support AI.", spacetruo: "Spacetruo: space/project operations, customer service and growth AI.", enit_ai: "Enit AI: central AI orchestration and cross-company intelligence.", xedruo: "Xedruo: parent platform, executive intelligence, governance and cross-company orchestration."
@@ -70,16 +77,16 @@ export async function generateAiResponse({ role = "general", company, task, cont
   const instructions = `${ROLE_INSTRUCTIONS[safeRole]}\n\n${companyInstruction}\n${formatInstruction}`;
   const input = [task, context ? `Context:\n${context}` : ""].filter(Boolean).join("\n\n");
   const errors: string[] = [];
+
   for (const provider of PROVIDER_ORDER[safeRole]) {
     try {
       const result = await callProvider(provider, instructions, input, safeRole);
-      return { ...result, role: safeRole, company: companyKey, mode: "provider", fallbackUsed: errors.length > 0 };
+      return { ...result, role: safeRole, company: companyKey, mode: provider === "local" ? "self-hosted-free" : "provider", fallbackUsed: errors.length > 0 };
     } catch (error: any) {
       errors.push(`${provider}: ${error?.message || "request failed"}`);
     }
   }
 
-  // Free-first policy: Xedruo remains usable even when no paid AI provider is configured.
   return {
     text: freeAiFallback({ role: safeRole, company: companyKey, task: input, outputFormat }),
     provider: "xedruo-free",
@@ -94,6 +101,7 @@ export async function generateAiResponse({ role = "general", company, task, cont
 
 export function aiProviderStatus() {
   return {
+    local: localAiStatus(),
     free: { connected: true, model: "xedruo-free-fallback", cost: 0 },
     openai: { connected: !!env("OPENAI_API_KEY"), model: env("OPENAI_MODEL") || "role-routed default" },
     anthropic: { connected: !!env("ANTHROPIC_API_KEY"), model: env("ANTHROPIC_MODEL") || "claude-sonnet-4-6" },
