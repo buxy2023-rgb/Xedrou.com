@@ -33,10 +33,26 @@ const allowedOrigins = new Set([
   "http://localhost:3000",
 ]);
 
+function isAllowedXedruoPreviewOrigin(origin: string) {
+  try {
+    const url = new URL(origin);
+    if (url.protocol !== "https:") return false;
+    const hostname = url.hostname.toLowerCase();
+    return hostname.endsWith("-xedruo-9003s-projects.vercel.app")
+      || hostname.startsWith("xedrou-") && hostname.endsWith(".vercel.app");
+  } catch {
+    return false;
+  }
+}
+
+function isAllowedOrigin(origin?: string) {
+  return !origin || allowedOrigins.has(origin) || isAllowedXedruoPreviewOrigin(origin);
+}
+
 app.set("trust proxy", 1);
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.has(origin)) return callback(null, true);
+    if (isAllowedOrigin(origin)) return callback(null, true);
     return callback(new Error(`CORS origin not allowed: ${origin}`));
   },
   credentials: true,
