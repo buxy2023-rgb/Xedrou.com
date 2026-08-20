@@ -41,11 +41,24 @@ function isAllowedPreviewOrigin(origin: string) {
   }
 }
 
+function isAllowedFrontendOrigin(origin: string) {
+  if (origin === "https://xedruo-web.onrender.com") return true;
+  const configuredOrigins = String(process.env.FRONTEND_ORIGIN || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  return configuredOrigins.includes(origin) || isAllowedPreviewOrigin(origin);
+}
+
 function frontendOriginForRequest(req: any) {
   const requestOrigin = String(req.get("origin") || "").trim();
-  const configured = String(process.env.FRONTEND_ORIGIN || "http://localhost:3000").split(",")[0].trim();
-  if (requestOrigin && (requestOrigin === configured || isAllowedPreviewOrigin(requestOrigin))) return requestOrigin;
-  return configured;
+  const configured = String(process.env.FRONTEND_ORIGIN || "http://localhost:3000")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const fallback = configured[0] || "http://localhost:3000";
+  if (requestOrigin && isAllowedFrontendOrigin(requestOrigin)) return requestOrigin;
+  return fallback;
 }
 
 router.post("/register", async (req, res) => {
