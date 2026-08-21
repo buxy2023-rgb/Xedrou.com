@@ -17,6 +17,7 @@ import companyDomainsRouter from "./routes/company-domains";
 import platformUsageRouter from "./routes/platform-usage";
 import payPlayRouter from "./routes/pay-play";
 import workforceRouter from "./routes/workforce";
+import { ensureConfiguredWorkforceAccounts } from "./services/workforce-bootstrap";
 import { attachRealtime } from "./realtime";
 const app=express(); const PORT=Number(process.env.PORT)||4000;
 const configuredOrigins=(process.env.FRONTEND_ORIGIN||"").split(",").map(o=>o.trim()).filter(Boolean);
@@ -27,4 +28,5 @@ app.set("trust proxy",1); app.use(cors({origin:(origin,cb)=>isAllowedOrigin(orig
 app.get("/health",(_req,res)=>res.json({status:"ok"}));
 app.use("/api/entities",entitiesRouter); app.use("/api/auth",authRouter); app.use("/api/registration",registrationRouter); app.use("/api/integrations",integrationsRouter); app.use("/api/company-ai",companyAIRouter); app.use("/api/ai",aiRouter); app.use("/api/company-portal",companyPortalRouter); app.use("/api/developer",developerRouter); app.use("/api/company",companyApiRouter); app.use("/api/company-domains",companyDomainsRouter); app.use("/api/platform-usage",platformUsageRouter); app.use("/api/pay-play",payPlayRouter); app.use("/api/workforce",workforceRouter);
 app.use((_req,res)=>res.status(404).json({error:"Not found"})); app.use((err:any,_req:express.Request,res:express.Response,_next:express.NextFunction)=>{console.error(err);res.status(err.status||500).json({error:err.message||"Internal server error"});});
-const httpServer=http.createServer(app); attachRealtime(httpServer); httpServer.listen(PORT,()=>console.log(`Xedruo API (+ realtime) listening on :${PORT}`));
+const httpServer=http.createServer(app); attachRealtime(httpServer);
+ensureConfiguredWorkforceAccounts().then(()=>httpServer.listen(PORT,()=>console.log(`Xedruo API (+ realtime) listening on :${PORT}`))).catch(err=>{console.error("Workforce bootstrap failed",err);process.exit(1);});
