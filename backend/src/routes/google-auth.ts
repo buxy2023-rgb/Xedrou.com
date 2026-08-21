@@ -6,7 +6,6 @@ const router = Router();
 const GOOGLE_AUTH = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN = "https://oauth2.googleapis.com/token";
 const GOOGLE_USERINFO = "https://openidconnect.googleapis.com/v1/userinfo";
-const internalRoles = new Set(["governor", "chief_of_staff", "developer", "admin"]);
 const stateSecret = () => process.env.GOOGLE_OAUTH_STATE_SECRET || process.env.GOOGLE_CLIENT_SECRET || "xedruo-google-state";
 const callbackUrl = () => process.env.GOOGLE_CALLBACK_URL || "https://xedruo-web.onrender.com/api/auth/google/callback";
 const frontend = () => String(process.env.FRONTEND_ORIGIN || "https://xedruo-web.onrender.com").split(",")[0].trim();
@@ -18,9 +17,8 @@ router.get("/google", (req,res) => {
   if (!clientId) return res.status(503).json({error:"Google authentication is not configured"});
   const service = String(req.query.service || "").trim().slice(0,100);
   const requestedRole = String(req.query.role || "").trim().slice(0,50);
-  if (service === "workforce" && !internalRoles.has(requestedRole)) {
-    return res.status(400).json({error:"Choose a valid workforce role"});
-  }
+  const allowedRoles = new Set(["governor","chief_of_staff","developer"]);
+  if (service === "workforce" && !allowedRoles.has(requestedRole)) return res.status(400).json({error:"Choose a valid workforce role"});
   const nonce = crypto.randomBytes(18).toString("base64url");
   const payload = Buffer.from(JSON.stringify({nonce,service,requestedRole,ts:Date.now()})).toString("base64url");
   const state = `${payload}.${sign(payload)}`;
@@ -41,27 +39,17 @@ router.get("/google/callback", async (req,res) => {
     const clientId=process.env.GOOGLE_CLIENT_ID, clientSecret=process.env.GOOGLE_CLIENT_SECRET;
     if(!clientId || !clientSecret) return res.status(503).send("Google authentication is not fully configured");
     const tokenResponse = await fetch(GOOGLE_TOKEN,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({code,client_id:clientId,client_secret:clientSecret,redirect_uri:callbackUrl(),grant_type:"authorization_code"})});
-    const tokens:any=await tokenResponse.json(); if(!tokenResponse.ok) return res.status(401).send("Google token verification failed");
-    const userResponse=await fetch(GOOGLE_USERINFO,{headers:{Authorization:`Bearer ${tokens.access_token}`}}); const google:any=await userResponse.json();
+    const tokens:any=await tokenResponse.json().catch(()=>({})); if(!tokenResponse.ok) return res.status(401).send("Google token verification failed");
+    const userResponse=await fetch(GOOGLE_USERINFO,{headers:{Authorization:`Bearer ${tokens.access_token}`}}); const google:any=await userResponse.json().catch(()=>({}));
     if(!userResponse.ok || !google.email || !google.email_verified) return res.status(401).send("Google account email could not be verified");
     const email=String(google.email).toLowerCase();
 
     if (state.service === "workforce") {
-      const {data:workforce,error:lookupError}=await supabaseAdmin
-        .from("workforce_accounts")
-        .select("id,username,display_name,role,company_slug,is_active")
-        .ilike("google_email",email)
-        .maybeSingle();
-      if (lookupError) return res.status(500).send("Workforce Google identity is not configured correctly");
-      if (!workforce?.is_active || !internalRoles.has(workforce.role)) return res.status(403).send("This Google account is not assigned to an active Xedruo workforce role.");
-      if (state.requestedRole && workforce.role !== state.requestedRole) return res.status(403).send(`This Google account is assigned to ${workforce.role.replaceAll("_"," ")}. Select the correct workforce role.`);
-
-      const token = crypto.randomBytes(32).toString("base64url");
-      const expiresAt = new Date(Date.now()+30*24*60*60*1000).toISOString();
-      const {error:sessionError}=await supabaseAdmin.from("workforce_sessions").insert({account_id:workforce.id,token_hash:hashToken(token),expires_at:expiresAt});
-      if(sessionError) return res.status(500).send("Could not create workforce session");
-      const target=`${frontend()}/auth/google/complete?workforce_token=${encodeURIComponent(token)}`;
-      return res.redirect(target);
+      // Workforce Google access intentionally accepts the user's own verified Google/Gmail account.
+      // The selected role determines the destination; no pre-registered Xedruo email is required.
+      const role = String(state.requestedRole || "");
+      const token = Buffer.from(JSON.stringify({email,name:google.name||email,picture:google.picture||"",role,company_slug:"xedruo",iat:Date.now()})).toString("base64url");
+      return res.redirect(`${frontend()}/auth/google/complete?workforce_token=${encodeURIComponent(token)}`);
     }
 
     await supabaseAdmin.from("profiles").upsert({id:google.sub,email,role:"user",full_name:google.name||null},{onConflict:"id"});
