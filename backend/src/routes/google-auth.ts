@@ -9,15 +9,20 @@ const GOOGLE_USERINFO = "https://openidconnect.googleapis.com/v1/userinfo";
 const internalRoles = new Set(["governor", "chief_of_staff", "developer", "admin"]);
 const stateSecret = () => process.env.GOOGLE_OAUTH_STATE_SECRET || process.env.GOOGLE_CLIENT_SECRET || "xedruo-google-state";
 const callbackUrl = () => process.env.GOOGLE_CALLBACK_URL || "https://xedruo-web.onrender.com/api/auth/google/callback";
-const frontend = () => String(process.env.FRONTEND_ORIGIN || "https://xedruo-production-live.vercel.app").split(",")[0].trim();
+const frontend = () => String(process.env.FRONTEND_ORIGIN || "https://xedruo-web.onrender.com").split(",")[0].trim();
 const sign = (value:string) => crypto.createHmac("sha256", stateSecret()).update(value).digest("base64url");
+const hashToken = (t:string) => crypto.createHash("sha256").update(t).digest("hex");
 
 router.get("/google", (req,res) => {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   if (!clientId) return res.status(503).json({error:"Google authentication is not configured"});
   const service = String(req.query.service || "").trim().slice(0,100);
+  const requestedRole = String(req.query.role || "").trim().slice(0,50);
+  if (service === "workforce" && !internalRoles.has(requestedRole)) {
+    return res.status(400).json({error:"Choose a valid workforce role"});
+  }
   const nonce = crypto.randomBytes(18).toString("base64url");
-  const payload = Buffer.from(JSON.stringify({nonce,service,ts:Date.now()})).toString("base64url");
+  const payload = Buffer.from(JSON.stringify({nonce,service,requestedRole,ts:Date.now()})).toString("base64url");
   const state = `${payload}.${sign(payload)}`;
   const params = new URLSearchParams({client_id:clientId,redirect_uri:callbackUrl(),response_type:"code",scope:"openid email profile",access_type:"online",prompt:"select_account",state});
   res.redirect(`${GOOGLE_AUTH}?${params.toString()}`);
@@ -29,7 +34,8 @@ router.get("/google/callback", async (req,res) => {
     const rawState = String(req.query.state || "");
     if (!code || !rawState.includes(".")) return res.status(400).send("Google authentication failed");
     const [payload,signature] = rawState.split(".");
-    if (!crypto.timingSafeEqual(Buffer.from(signature),Buffer.from(sign(payload)))) return res.status(400).send("Invalid authentication state");
+    const expected = sign(payload);
+    if (signature.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(signature),Buffer.from(expected))) return res.status(400).send("Invalid authentication state");
     const state = JSON.parse(Buffer.from(payload,"base64url").toString("utf8"));
     if (!state.ts || Date.now()-Number(state.ts)>10*60*1000) return res.status(400).send("Authentication request expired");
     const clientId=process.env.GOOGLE_CLIENT_ID, clientSecret=process.env.GOOGLE_CLIENT_SECRET;
@@ -39,15 +45,28 @@ router.get("/google/callback", async (req,res) => {
     const userResponse=await fetch(GOOGLE_USERINFO,{headers:{Authorization:`Bearer ${tokens.access_token}`}}); const google:any=await userResponse.json();
     if(!userResponse.ok || !google.email || !google.email_verified) return res.status(401).send("Google account email could not be verified");
     const email=String(google.email).toLowerCase();
-    const {data:workforce}=await supabaseAdmin.from("workforce_accounts").select("id,username,display_name,role,company_slug,is_active").ilike("email",email).maybeSingle();
-    let role="customer", destination="customer";
-    if(workforce?.is_active && internalRoles.has(workforce.role)){ role=workforce.role; destination=role==="developer"?"developer":role==="chief_of_staff"?"staff":"governor"; }
-    else {
-      await supabaseAdmin.from("profiles").upsert({id:google.sub,email,role:"user",full_name:google.name||null},{onConflict:"id"});
+
+    if (state.service === "workforce") {
+      const {data:workforce,error:lookupError}=await supabaseAdmin
+        .from("workforce_accounts")
+        .select("id,username,display_name,role,company_slug,is_active")
+        .ilike("google_email",email)
+        .maybeSingle();
+      if (lookupError) return res.status(500).send("Workforce Google identity is not configured correctly");
+      if (!workforce?.is_active || !internalRoles.has(workforce.role)) return res.status(403).send("This Google account is not assigned to an active Xedruo workforce role.");
+      if (state.requestedRole && workforce.role !== state.requestedRole) return res.status(403).send(`This Google account is assigned to ${workforce.role.replaceAll("_"," ")}. Select the correct workforce role.`);
+
+      const token = crypto.randomBytes(32).toString("base64url");
+      const expiresAt = new Date(Date.now()+30*24*60*60*1000).toISOString();
+      const {error:sessionError}=await supabaseAdmin.from("workforce_sessions").insert({account_id:workforce.id,token_hash:hashToken(token),expires_at:expiresAt});
+      if(sessionError) return res.status(500).send("Could not create workforce session");
+      const target=`${frontend()}/auth/google/complete?workforce_token=${encodeURIComponent(token)}`;
+      return res.redirect(target);
     }
-    const ticket=Buffer.from(JSON.stringify({email,name:google.name||"",picture:google.picture||"",role,destination,service:state.service||null,iat:Date.now()})).toString("base64url");
-    const base=frontend();
-    const target=destination==="customer" ? `${base}/auth/google/complete?ticket=${encodeURIComponent(ticket)}&service=${encodeURIComponent(state.service||"")}` : `${base}/auth/google/complete?ticket=${encodeURIComponent(ticket)}`;
+
+    await supabaseAdmin.from("profiles").upsert({id:google.sub,email,role:"user",full_name:google.name||null},{onConflict:"id"});
+    const ticket=Buffer.from(JSON.stringify({email,name:google.name||"",picture:google.picture||"",role:"customer",destination:"customer",service:state.service||null,iat:Date.now()})).toString("base64url");
+    const target=`${frontend()}/auth/google/complete?ticket=${encodeURIComponent(ticket)}&service=${encodeURIComponent(state.service||"")}`;
     res.redirect(target);
   } catch(err){ console.error("Google OAuth callback failed",err); res.status(500).send("Google authentication failed"); }
 });
