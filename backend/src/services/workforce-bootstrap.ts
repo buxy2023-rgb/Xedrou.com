@@ -1,23 +1,51 @@
-import crypto from "crypto";
 import { supabaseAdmin } from "../config/supabase";
 
-const makePassword = (password: string) => {
-  const salt = crypto.randomBytes(16);
-  const hash = crypto.scryptSync(password, salt, 64, { N: 16384, r: 8, p: 1 });
-  return { salt: salt.toString("base64"), hash: hash.toString("base64") };
+type Credential = { salt: string; hash: string };
+
+// Passwords are never stored here. These are scrypt hashes generated for the
+// three explicitly configured executive accounts.
+const configured: Record<string, { displayName: string; role: "governor" | "chief_of_staff"; credential: Credential }> = {
+  miracle: {
+    displayName: "Olowolafe Miracle",
+    role: "governor",
+    credential: { salt: "5/OjnDvwXBFiS038Leg9Ag==", hash: "Zj3LUM3SZHNy4AHU7/FF5LRWVCYMneptu8OuEmUkiWHcBoMN5Lc5euWV5DvVS8ZIwW5vkZkKokofTdtRZ4l7ew==" },
+  },
+  blessing: {
+    displayName: "Olowolafe Blessing",
+    role: "governor",
+    credential: { salt: "mKvnWC8weECvkyFq+pQhow==", hash: "AEyYtHIECfr/+0FndczuBm+wmz585ujKjkoaKwQMvo46z6qGYuJD+5p/ZLdaB+N3aROjEV8uqvneBPHdq7l39w==" },
+  },
+  cassiee: {
+    displayName: "Cassiee",
+    role: "chief_of_staff",
+    credential: { salt: "5ArgR7xjEzMANAn3M60nzw==", hash: "KLcPaLOiC+B8UG1RDfxGsuZ/Py+Dgzl8KATyILLtePeJ4qaLwfHwZQVHPFaHP92DppGntci3kXTynaS/9OEDsA==" },
+  },
 };
 
-async function ensureAccount(username: string, displayName: string, role: "governor" | "chief_of_staff", password?: string) {
-  if (!password) return;
-  const normalized = username.trim().toLowerCase();
-  const { data: existing, error: lookupError } = await supabaseAdmin.from("workforce_accounts").select("id").eq("username", normalized).maybeSingle();
+async function ensureAccount(username: string, config: typeof configured[string]) {
+  const { data: existing, error: lookupError } = await supabaseAdmin
+    .from("workforce_accounts")
+    .select("id")
+    .eq("username", username)
+    .maybeSingle();
   if (lookupError) throw lookupError;
-  const p = makePassword(password);
+
+  const values = {
+    username,
+    display_name: config.displayName,
+    role: config.role,
+    company_slug: null,
+    password_hash: config.credential.hash,
+    password_salt: config.credential.salt,
+    is_active: true,
+    updated_at: new Date().toISOString(),
+  };
+
   if (existing?.id) {
-    const { error } = await supabaseAdmin.from("workforce_accounts").update({ display_name: displayName, role, company_slug: null, password_hash: p.hash, password_salt: p.salt, is_active: true, updated_at: new Date().toISOString() }).eq("id", existing.id);
+    const { error } = await supabaseAdmin.from("workforce_accounts").update(values).eq("id", existing.id);
     if (error) throw error;
   } else {
-    const { error } = await supabaseAdmin.from("workforce_accounts").insert({ username: normalized, display_name: displayName, role, company_slug: null, password_hash: p.hash, password_salt: p.salt, is_active: true });
+    const { error } = await supabaseAdmin.from("workforce_accounts").insert(values);
     if (error) throw error;
   }
 }
@@ -25,9 +53,14 @@ async function ensureAccount(username: string, displayName: string, role: "gover
 let bootstrapped = false;
 export async function ensureConfiguredWorkforceAccounts() {
   if (bootstrapped) return;
-  if (String(process.env.WORKFORCE_BOOTSTRAP_ENABLED || "").toLowerCase() !== "true") return;
-  await ensureAccount("miracle", "Olowolafe Miracle", "governor", process.env.GOVERNOR_MIRACLE_PASSWORD);
-  await ensureAccount("blessing", "Olowolafe Blessing", "governor", process.env.GOVERNOR_BLESSING_PASSWORD);
-  await ensureAccount("cassiee", "Cassiee", "chief_of_staff", process.env.CHIEF_OF_STAFF_CASSIEE_PASSWORD);
+  for (const [username, config] of Object.entries(configured)) {
+    try {
+      await ensureAccount(username, config);
+    } catch (error) {
+      // Do not prevent the API from starting if the database is temporarily
+      // unavailable. Login will continue to use the existing account record.
+      console.error(`[workforce] unable to sync ${username}`, error);
+    }
+  }
   bootstrapped = true;
 }
