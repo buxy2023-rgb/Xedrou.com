@@ -1,0 +1,54 @@
+import { Router } from "express";
+import crypto from "crypto";
+import { supabaseAdmin } from "../config/supabase";
+
+const router = Router();
+const SESSION_DAYS = 30;
+const hashToken = (token: string) => crypto.createHash("sha256").update(token).digest("hex");
+const verifyPassword = (password: string, saltB64: string, hashB64: string) => crypto.scryptSync(password, Buffer.from(saltB64, "base64"), 64, { N: 16384, r: 8, p: 1 }).equals(Buffer.from(hashB64, "base64"));
+const makePassword = (password: string) => { const salt = crypto.randomBytes(16); const hash = crypto.scryptSync(password, salt, 64, { N: 16384, r: 8, p: 1 }); return { salt: salt.toString("base64"), hash: hash.toString("base64") }; };
+
+async function accountFromToken(token?: string) {
+  if (!token) return null;
+  const { data } = await supabaseAdmin.from("workforce_sessions").select("account_id,expires_at,workforce_accounts(id,username,display_name,role,company_slug,is_active)").eq("token_hash", hashToken(token)).gt("expires_at", new Date().toISOString()).maybeSingle();
+  const account: any = data?.workforce_accounts;
+  return data && account?.is_active ? account : null;
+}
+async function requireRole(req: any, res: any, roles: string[]) { const token = String(req.headers.authorization || "").replace(/^Bearer\s+/i, ""); const account = await accountFromToken(token); if (!account) { res.status(401).json({ error: "Workforce authentication required" }); return null; } if (!roles.includes(account.role)) { res.status(403).json({ error: "Insufficient workforce permission" }); return null; } req.workforceAccount = account; return account; }
+async function audit(actor: any, action: string, targetId: string | null, companySlug: string | null, details: any = {}) { await supabaseAdmin.from("workforce_audit_log").insert({ actor_id: actor.id, action, target_id: targetId, company_slug: companySlug, details }); }
+
+router.post("/login", async (req, res) => {
+  const username = String(req.body?.username || "").trim().toLowerCase();
+  const password = String(req.body?.password || "");
+  if (!username || !password) return res.status(400).json({ error: "Username and password are required" });
+  const { data: account, error } = await supabaseAdmin.from("workforce_accounts").select("id,username,display_name,role,company_slug,password_hash,password_salt,is_active").eq("username", username).maybeSingle();
+  if (error || !account || !account.is_active) return res.status(401).json({ error: "Invalid workforce credentials" });
+  let valid = false; try { valid = verifyPassword(password, account.password_salt, account.password_hash); } catch { valid = false; }
+  if (!valid) return res.status(401).json({ error: "Invalid workforce credentials" });
+  const token = crypto.randomBytes(32).toString("hex");
+  const expires = new Date(Date.now() + SESSION_DAYS * 86400000).toISOString();
+  const { error: sessionError } = await supabaseAdmin.from("workforce_sessions").insert({ account_id: account.id, token_hash: hashToken(token), expires_at: expires });
+  if (sessionError) return res.status(500).json({ error: sessionError.message });
+  await audit(account, "login", account.id, account.company_slug, {});
+  res.json({ token, expiresAt: expires, account: { id: account.id, username: account.username, display_name: account.display_name, role: account.role, company_slug: account.company_slug } });
+});
+
+router.get("/me", async (req, res) => { const token = String(req.headers.authorization || "").replace(/^Bearer\s+/i, ""); const account = await accountFromToken(token); if (!account) return res.status(401).json({ error: "Not authenticated" }); res.json({ account }); });
+
+router.post("/logout", async (req, res) => { const token = String(req.headers.authorization || "").replace(/^Bearer\s+/i, ""); if (token) await supabaseAdmin.from("workforce_sessions").delete().eq("token_hash", hashToken(token)); res.json({ ok: true }); });
+
+router.post("/password", async (req, res) => { const account = await requireRole(req, res, ["chief_of_staff", "governor", "developer", "accountant", "customer_service", "staff"]); if (!account) return; const password = String(req.body?.password || ""); if (password.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters" }); const p = makePassword(password); const { error } = await supabaseAdmin.from("workforce_accounts").update({ password_hash: p.hash, password_salt: p.salt, updated_at: new Date().toISOString() }).eq("id", account.id); if (error) return res.status(500).json({ error: error.message }); await audit(account, "change_password", account.id, account.company_slug, {}); res.json({ ok: true }); });
+
+router.get("/companies", async (req, res) => { const account = await requireRole(req, res, ["governor", "chief_of_staff", "admin"]); if (!account) return; const { data, error } = await supabaseAdmin.from("companies").select("company_id,name,slug,industry,status").order("name"); if (error) return res.status(500).json({ error: error.message }); res.json({ companies: data || [] }); });
+
+router.get("/accounts", async (req, res) => { const account = await requireRole(req, res, ["governor", "chief_of_staff"]); if (!account) return; const { data, error } = await supabaseAdmin.from("workforce_accounts").select("id,username,display_name,role,company_slug,is_active,created_at,updated_at").order("created_at", { ascending: false }); if (error) return res.status(500).json({ error: error.message }); res.json({ accounts: data || [] }); });
+
+router.post("/developers", async (req, res) => { const actor = await requireRole(req, res, ["chief_of_staff", "governor"]); if (!actor) return; const { username, display_name, password, company_slug } = req.body || {}; if (!username || !display_name || !password || !company_slug) return res.status(400).json({ error: "username, display_name, password and company_slug are required" }); if (String(password).length < 8) return res.status(400).json({ error: "Password must be at least 8 characters" }); const { data: company } = await supabaseAdmin.from("companies").select("slug").eq("slug", company_slug).maybeSingle(); if (!company) return res.status(400).json({ error: "Unknown company" }); const p = makePassword(String(password)); const { data, error } = await supabaseAdmin.from("workforce_accounts").insert({ username: String(username).trim().toLowerCase(), display_name: String(display_name).trim(), role: "developer", company_slug, password_hash: p.hash, password_salt: p.salt, created_by: actor.id }).select("id,username,display_name,role,company_slug,is_active,created_at").single(); if (error) return res.status(error.code === "23505" ? 409 : 500).json({ error: error.code === "23505" ? "Username already exists" : error.message }); await audit(actor, "register_developer", data.id, company_slug, { username: data.username }); res.status(201).json({ account: data }); });
+
+router.post("/accounts/:id/status", async (req, res) => { const actor = await requireRole(req, res, ["governor", "chief_of_staff"]); if (!actor) return; const enabled = !!req.body?.enabled; const id = req.params.id; const { data: target } = await supabaseAdmin.from("workforce_accounts").select("id,display_name,role,company_slug,is_active").eq("id", id).maybeSingle(); if (!target) return res.status(404).json({ error: "Account not found" }); if (target.role === "governor") return res.status(403).json({ error: "Governor accounts cannot be disabled here" }); if (actor.role === "chief_of_staff" && target.role === "chief_of_staff") return res.status(403).json({ error: "Chief of Staff cannot remove the Chief of Staff" }); const { error } = await supabaseAdmin.from("workforce_accounts").update({ is_active: enabled, updated_at: new Date().toISOString() }).eq("id", id); if (error) return res.status(500).json({ error: error.message }); await audit(actor, enabled ? "restore_account" : "remove_account", id, target.company_slug, { targetRole: target.role }); res.json({ ok: true, is_active: enabled }); });
+
+router.delete("/accounts/:id", async (req, res) => { const actor = await requireRole(req, res, ["governor"]); if (!actor) return; const id = req.params.id; const { data: target } = await supabaseAdmin.from("workforce_accounts").select("id,display_name,role,company_slug").eq("id", id).maybeSingle(); if (!target) return res.status(404).json({ error: "Account not found" }); if (target.role === "governor") return res.status(403).json({ error: "Governor accounts cannot be deleted" }); const { error } = await supabaseAdmin.from("workforce_accounts").update({ is_active: false, updated_at: new Date().toISOString() }).eq("id", id); if (error) return res.status(500).json({ error: error.message }); await audit(actor, "governor_remove_account", id, target.company_slug, { targetRole: target.role }); res.json({ ok: true }); });
+
+router.get("/audit", async (req, res) => { const actor = await requireRole(req, res, ["governor", "chief_of_staff"]); if (!actor) return; const { data, error } = await supabaseAdmin.from("workforce_audit_log").select("id,actor_id,action,target_id,company_slug,details,created_at").order("created_at", { ascending: false }).limit(100); if (error) return res.status(500).json({ error: error.message }); res.json({ audit: data || [] }); });
+
+export default router;
