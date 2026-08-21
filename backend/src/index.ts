@@ -6,6 +6,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import entitiesRouter from "./routes/entities";
 import authRouter from "./routes/auth";
+import googleAuthRouter from "./routes/google-auth";
 import registrationRouter from "./routes/registration";
 import integrationsRouter from "./routes/integrations";
 import companyAIRouter from "./routes/company-ai";
@@ -26,7 +27,7 @@ function isAllowedXedruoOrigin(origin:string){try{const u=new URL(origin);if(u.p
 function isAllowedOrigin(origin?:string){return !origin||allowedOrigins.has(origin)||isAllowedXedruoOrigin(origin);}
 app.set("trust proxy",1); app.use(cors({origin:(origin,cb)=>isAllowedOrigin(origin)?cb(null,true):cb(new Error(`CORS origin not allowed: ${origin}`)),credentials:true})); app.use(helmet()); app.use(express.json({limit:"10mb"})); app.use(morgan("combined"));
 app.get("/health",(_req,res)=>res.json({status:"ok"}));
-app.use("/api/entities",entitiesRouter); app.use("/api/auth",authRouter); app.use("/api/registration",registrationRouter); app.use("/api/integrations",integrationsRouter); app.use("/api/company-ai",companyAIRouter); app.use("/api/ai",aiRouter); app.use("/api/company-portal",companyPortalRouter); app.use("/api/developer",developerRouter); app.use("/api/company",companyApiRouter); app.use("/api/company-domains",companyDomainsRouter); app.use("/api/platform-usage",platformUsageRouter); app.use("/api/pay-play",payPlayRouter); app.use("/api/workforce",workforceRouter);
+app.use("/api/entities",entitiesRouter); app.use("/api/auth",googleAuthRouter); app.use("/api/auth",authRouter); app.use("/api/registration",registrationRouter); app.use("/api/integrations",integrationsRouter); app.use("/api/company-ai",companyAIRouter); app.use("/api/ai",aiRouter); app.use("/api/company-portal",companyPortalRouter); app.use("/api/developer",developerRouter); app.use("/api/company",companyApiRouter); app.use("/api/company-domains",companyDomainsRouter); app.use("/api/platform-usage",platformUsageRouter); app.use("/api/pay-play",payPlayRouter); app.use("/api/workforce",workforceRouter);
 app.use((_req,res)=>res.status(404).json({error:"Not found"})); app.use((err:any,_req:express.Request,res:express.Response,_next:express.NextFunction)=>{console.error(err);res.status(err.status||500).json({error:err.message||"Internal server error"});});
 const httpServer=http.createServer(app); attachRealtime(httpServer);
 ensureConfiguredWorkforceAccounts().then(()=>httpServer.listen(PORT,()=>console.log(`Xedruo API (+ realtime) listening on :${PORT}`))).catch(err=>{console.error("Workforce bootstrap failed",err);process.exit(1);});
