@@ -20,14 +20,71 @@ import payPlayRouter from "./routes/pay-play";
 import workforceRouter from "./routes/workforce";
 import { ensureConfiguredWorkforceAccounts } from "./services/workforce-bootstrap";
 import { attachRealtime } from "./realtime";
-const app=express(); const PORT=Number(process.env.PORT)||4000;
-const configuredOrigins=(process.env.FRONTEND_ORIGIN||"").split(",").map(o=>o.trim()).filter(Boolean);
-const allowedOrigins=new Set(["https://xedruo-web.onrender.com","https://xedruo-production-live.vercel.app","https://xedruo-production-live-xedruo-9003s-projects.vercel.app","https://xedruo-production-live-git-main-xedruo-9003s-projects.vercel.app","https://xedruo.com","https://www.xedruo.com",...configuredOrigins,"http://localhost:3000"]);
-function isAllowedXedruoOrigin(origin:string){try{const u=new URL(origin);if(u.protocol!=="https:")return false;const h=u.hostname.toLowerCase();return (h.startsWith("xedruo-")&&h.endsWith(".onrender.com"))||h.endsWith("-xedruo-9003s-projects.vercel.app")||h.endsWith(".xedruo.com");}catch{return false;}}
-function isAllowedOrigin(origin?:string){return !origin||allowedOrigins.has(origin)||isAllowedXedruoOrigin(origin);}
-app.set("trust proxy",1); app.use(cors({origin:(origin,cb)=>isAllowedOrigin(origin)?cb(null,true):cb(new Error(`CORS origin not allowed: ${origin}`)),credentials:true})); app.use(helmet()); app.use(express.json({limit:"10mb"})); app.use(morgan("combined"));
-app.get("/health",(_req,res)=>res.json({status:"ok"}));
-app.use("/api/entities",entitiesRouter); app.use("/api/auth",googleAuthRouter); app.use("/api/auth",authRouter); app.use("/api/registration",registrationRouter); app.use("/api/integrations",integrationsRouter); app.use("/api/company-ai",companyAIRouter); app.use("/api/ai",aiRouter); app.use("/api/company-portal",companyPortalRouter); app.use("/api/developer",developerRouter); app.use("/api/company",companyApiRouter); app.use("/api/company-domains",companyDomainsRouter); app.use("/api/platform-usage",platformUsageRouter); app.use("/api/pay-play",payPlayRouter); app.use("/api/workforce",workforceRouter);
-app.use((_req,res)=>res.status(404).json({error:"Not found"})); app.use((err:any,_req:express.Request,res:express.Response,_next:express.NextFunction)=>{console.error(err);res.status(err.status||500).json({error:err.message||"Internal server error"});});
-const httpServer=http.createServer(app); attachRealtime(httpServer);
-ensureConfiguredWorkforceAccounts().then(()=>httpServer.listen(PORT,()=>console.log(`Xedruo API (+ realtime) listening on :${PORT}`))).catch(err=>{console.error("Workforce bootstrap failed",err);process.exit(1);});
+
+const app = express();
+const PORT = Number(process.env.PORT) || 4000;
+const configuredOrigins = (process.env.FRONTEND_ORIGIN || "").split(",").map(o => o.trim()).filter(Boolean);
+const allowedOrigins = new Set([
+  "https://xedruo-web.onrender.com",
+  "https://xedruo-production-live.vercel.app",
+  "https://xedruo-production-live-xedruo-9003s-projects.vercel.app",
+  "https://xedruo-production-live-git-main-xedruo-9003s-projects.vercel.app",
+  "https://xedruo.com",
+  "https://www.xedruo.com",
+  ...configuredOrigins,
+  "http://localhost:3000"
+]);
+
+function isAllowedXedruoOrigin(origin: string) {
+  try {
+    const u = new URL(origin);
+    if (u.protocol !== "https:") return false;
+    const h = u.hostname.toLowerCase();
+    return (h.startsWith("xedruo-") && h.endsWith(".onrender.com")) || h.endsWith("-xedruo-9003s-projects.vercel.app") || h.endsWith(".xedruo.com");
+  } catch {
+    return false;
+  }
+}
+
+function isAllowedOrigin(origin?: string) {
+  return !origin || allowedOrigins.has(origin) || isAllowedXedruoOrigin(origin);
+}
+
+app.set("trust proxy", 1);
+app.use(cors({ origin: (origin, cb) => isAllowedOrigin(origin) ? cb(null, true) : cb(new Error(`CORS origin not allowed: ${origin}`)), credentials: true }));
+app.use(helmet());
+app.use(express.json({ limit: "10mb" }));
+app.use(morgan("combined"));
+
+app.get("/", (_req, res) => res.status(200).json({ service: "Xedruo AI Router", status: "online", health: "/health" }));
+app.get("/health", (_req, res) => res.json({ status: "ok" }));
+
+app.use("/api/entities", entitiesRouter);
+app.use("/api/auth", googleAuthRouter);
+app.use("/api/auth", authRouter);
+app.use("/api/registration", registrationRouter);
+app.use("/api/integrations", integrationsRouter);
+app.use("/api/company-ai", companyAIRouter);
+app.use("/api/ai", aiRouter);
+app.use("/api/company-portal", companyPortalRouter);
+app.use("/api/developer", developerRouter);
+app.use("/api/company", companyApiRouter);
+app.use("/api/company-domains", companyDomainsRouter);
+app.use("/api/platform-usage", platformUsageRouter);
+app.use("/api/pay-play", payPlayRouter);
+app.use("/api/workforce", workforceRouter);
+
+app.use((_req, res) => res.status(404).json({ error: "Not found" }));
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error(err);
+  res.status(err.status || 500).json({ error: err.message || "Internal server error" });
+});
+
+const httpServer = http.createServer(app);
+attachRealtime(httpServer);
+ensureConfiguredWorkforceAccounts()
+  .then(() => httpServer.listen(PORT, () => console.log(`Xedruo API (+ realtime) listening on :${PORT}`)))
+  .catch(err => {
+    console.error("Workforce bootstrap failed", err);
+    process.exit(1);
+  });
